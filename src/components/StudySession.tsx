@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Flag, Eye, Loader2, PartyPopper, ArrowRight, ChevronLeft, ChevronRight, Bug, NotebookPen, X } from "lucide-react";
+import { Flag, Eye, Loader2, PartyPopper, ArrowRight, ChevronLeft, ChevronRight, Bug, NotebookPen, X, LogOut, CircleDashed } from "lucide-react";
 import { CardQuestion, CardAnswer, type CardData } from "./CardFace";
 import NotebookEditor from "./NotebookEditor";
 import { previewInterval, type Rating } from "@/lib/srs";
@@ -25,6 +25,10 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
   const [revealed, setRevealed] = useState(false);
   const [done, setDone] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [endedEarly, setEndedEarly] = useState(false);
+  // Unique cards this session started with (requeued "again/hard" cards don't inflate it),
+  // so we can show how many were left unsolved if you end early.
+  const [initialTotal, setInitialTotal] = useState(0);
   const [counts, setCounts] = useState<Counts>({ again: 0, hard: 0, good: 0, easy: 0 });
   const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
   const [flaggedSet, setFlaggedSet] = useState<Set<string>>(new Set());
@@ -44,6 +48,7 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
       .then((r) => r.json())
       .then((data: CardData[]) => {
         setQueue(data);
+        setInitialTotal(data.length);
         setFlaggedSet(new Set(data.filter((c) => c.flagged).map((c) => c.id)));
         setLeechSet(new Set(data.filter((c) => c.isLeech).map((c) => c.id)));
         setLoading(false);
@@ -85,6 +90,13 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
     [current, mode, idx, queue.length, ratedIds]
   );
 
+  // Stop now: cards already rated are kept in the statistics (they were saved as
+  // you rated them); everything you didn't reach stays unsolved/unanswered.
+  const endSession = useCallback(() => {
+    setEndedEarly(true);
+    setFinished(true);
+  }, []);
+
   const goPrev = useCallback(() => { setRevealed(false); setIdx((i) => Math.max(0, i - 1)); }, []);
   const goNext = useCallback(() => { setRevealed(false); setIdx((i) => Math.min(queue.length - 1, i + 1)); }, [queue.length]);
 
@@ -114,7 +126,10 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
   }, [current, revealed, rate, toggleFlag, goPrev, goNext]);
 
   if (loading) return <div className="grid place-items-center py-24 text-[var(--color-muted)]"><Loader2 className="animate-spin mb-2" /> Loading cards…</div>;
-  if (finished || !current) return <SessionSummary done={done} counts={counts} />;
+  if (finished || !current) {
+    const remaining = Math.max(0, initialTotal - done);
+    return <SessionSummary done={done} counts={counts} remaining={remaining} endedEarly={endedEarly} />;
+  }
 
   const isFlagged = flaggedSet.has(current.id);
   const isLeech = leechSet.has(current.id);
@@ -125,6 +140,9 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-lg font-semibold">{title}</h1>
         <div className="flex items-center gap-2">
+          <button onClick={endSession} className="btn btn-ghost py-1.5 px-2.5 text-[var(--color-again)] hover:bg-[#fef2f2]" title="End this session now — answered cards are saved, the rest stay unsolved">
+            <LogOut size={16} /> <span className="hidden sm:inline text-sm">End session</span>
+          </button>
           <button onClick={() => setNotebookOpen(true)} className="btn btn-ghost py-1.5 px-2" title="Open notebook"><NotebookPen size={16} /></button>
           <button onClick={goPrev} disabled={idx === 0} className="btn btn-ghost py-1.5 px-2 disabled:opacity-40" title="Previous card (←)"><ChevronLeft size={16} /></button>
           <span className="text-sm text-[var(--color-muted)] tabular-nums">{idx + 1} / {total}</span>
@@ -215,7 +233,7 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
   );
 }
 
-function SessionSummary({ done, counts }: { done: number; counts: Counts }) {
+function SessionSummary({ done, counts, remaining = 0, endedEarly = false }: { done: number; counts: Counts; remaining?: number; endedEarly?: boolean }) {
   const total = counts.again + counts.hard + counts.good + counts.easy;
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   const accuracy = pct(counts.good + counts.easy);
@@ -228,12 +246,18 @@ function SessionSummary({ done, counts }: { done: number; counts: Counts }) {
   return (
     <div className="card-surface p-8 md:p-10 text-center fade-up max-w-xl mx-auto">
       <div className="grid place-items-center w-16 h-16 rounded-2xl bg-green-100 text-green-600 mx-auto mb-4"><PartyPopper size={30} /></div>
-      <h2 className="text-2xl font-bold mb-1">Session complete!</h2>
+      <h2 className="text-2xl font-bold mb-1">{endedEarly ? "Session ended" : "Session complete!"}</h2>
       {total === 0 ? (
-        <p className="text-[var(--color-muted)] mb-6">There were no cards to review right now.</p>
+        <p className="text-[var(--color-muted)] mb-6">{endedEarly ? "You ended before answering any cards — nothing was counted, and all cards are still unsolved." : "There were no cards to review right now."}</p>
       ) : (
         <>
-          <p className="text-[var(--color-muted)] mb-6">You reviewed <b className="text-[var(--color-ink)]">{done}</b> card{done === 1 ? "" : "s"}.</p>
+          <p className="text-[var(--color-muted)] mb-2">You reviewed <b className="text-[var(--color-ink)]">{done}</b> card{done === 1 ? "" : "s"} — all counted in your statistics.</p>
+          {endedEarly && remaining > 0 && (
+            <p className="text-sm text-[var(--color-muted)] mb-6 inline-flex items-center gap-1.5 justify-center">
+              <CircleDashed size={15} /> <b className="text-[var(--color-ink)]">{remaining}</b> card{remaining === 1 ? "" : "s"} left unsolved — they&apos;ll be waiting next time.
+            </p>
+          )}
+          {!(endedEarly && remaining > 0) && <div className="mb-6" />}
           <div className="mb-6"><div className="text-5xl font-bold text-[var(--color-good)]">{accuracy}%</div><div className="text-sm text-[var(--color-muted)]">answered Good or Easy</div></div>
           <div className="space-y-3 text-left mb-7">
             {rows.map((r) => (

@@ -23,9 +23,20 @@ export interface CardData {
   mnemonic?: string;
 }
 
-// eslint-disable-next-line @next/next/no-img-element
-function CardImage({ src }: { src: string }) {
-  return <img src={src} alt="" className="mt-4 rounded-xl max-h-72 mx-auto object-contain border border-[var(--color-line)]" />;
+// A card can carry several images (e.g. UWorld answer screenshots). They're
+// stored as data URIs joined by newlines, so render each one in order.
+function CardImages({ src }: { src?: string }) {
+  if (!src) return null;
+  const images = src.split("\n").map((s) => s.trim()).filter(Boolean);
+  if (!images.length) return null;
+  return (
+    <div className="space-y-3">
+      {images.map((s, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={i} src={s} alt="" className="mt-4 rounded-xl max-h-72 mx-auto object-contain border border-[var(--color-line)]" />
+      ))}
+    </div>
+  );
 }
 
 const CLOZE_RE = /\{\{c\d+::(.*?)(?:::(.*?))?\}\}/g;
@@ -63,7 +74,7 @@ export function CardQuestion({ card }: { card: CardData }) {
       {card.type === "cloze"
         ? <Text value={clozeQuestion(card.front)} className="text-2xl md:text-3xl font-semibold leading-relaxed" />
         : <Text value={card.front} className="text-2xl md:text-3xl font-semibold leading-relaxed" />}
-      {card.imageFront ? <CardImage src={card.imageFront} /> : null}
+      <CardImages src={card.imageFront} />
     </div>
   );
 }
@@ -82,7 +93,7 @@ export function CardAnswer({ card }: { card: CardData }) {
             )
           )}
         </p>
-        {card.imageBack ? <CardImage src={card.imageBack} /> : null}
+        <CardImages src={card.imageBack} />
         <AnswerExtras card={card} />
       </div>
     );
@@ -100,7 +111,7 @@ export function CardAnswer({ card }: { card: CardData }) {
             </li>
           ))}
         </ul>
-        {card.imageBack ? <CardImage src={card.imageBack} /> : null}
+        <CardImages src={card.imageBack} />
         <AnswerExtras card={card} />
       </div>
     );
@@ -109,7 +120,7 @@ export function CardAnswer({ card }: { card: CardData }) {
   return (
     <div className="space-y-3">
       <Text value={card.back} className="text-xl md:text-2xl leading-relaxed" />
-      {card.imageBack ? <CardImage src={card.imageBack} /> : null}
+      <CardImages src={card.imageBack} />
       <AnswerExtras card={card} />
     </div>
   );

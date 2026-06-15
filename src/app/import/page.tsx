@@ -139,21 +139,33 @@ function ApkgImport() {
   async function upload() {
     if (!file) return;
     setError(""); setResult(null); setBusy(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    if (deckName.trim()) fd.append("deckName", deckName.trim());
-    const res = await fetch("/api/import/apkg", { method: "POST", body: fd });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) { setError(data.error); return; }
-    setResult(data);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      if (deckName.trim()) fd.append("deckName", deckName.trim());
+      const res = await fetch("/api/import/apkg", { method: "POST", body: fd });
+      // The server always answers with JSON, but guard against an empty/HTML
+      // response (e.g. a crash or timeout) so we never show a blank error.
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        setError(data?.error || `Upload failed (server said ${res.status}). The deck may be too large.`);
+        return;
+      }
+      setResult(data);
+    } catch {
+      // Network dropped / upload interrupted — without this the button would
+      // spin forever, which is exactly the "infinite upload" we're fixing.
+      setError("Upload was interrupted. Check your connection and try again — large decks can take a minute.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="space-y-4">
       <div className="card-surface p-4 bg-[#f3f6ff]/60 text-sm text-[var(--color-muted)] flex gap-3">
         <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Download free decks from <b>ankiweb.net/shared</b> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked. Images aren&apos;t imported in this version — text only.</span>
+        <span>Download free decks from <b>ankiweb.net/shared</b> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own image-rich decks (UWorld, etc.) — pictures are imported too. Big decks (100MB+) are fine; the upload just takes a minute. If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
       </div>
 
       <div className="card-surface p-5 space-y-3">

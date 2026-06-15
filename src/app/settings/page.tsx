@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Settings, Copy, Check, KeyRound, Sparkles, Package } from "lucide-react";
 import { CLAUDE_PROMPT } from "@/lib/prompt";
+import StoragePanel from "@/components/StoragePanel";
 
 export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
@@ -16,6 +17,9 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold flex items-center gap-2"><Settings size={22} /> Settings &amp; help</h1>
+
+      {/* Storage */}
+      <StoragePanel />
 
       {/* Prompt */}
       <section className="card-surface p-6">
