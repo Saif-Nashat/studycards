@@ -13,5 +13,7 @@ export interface StorageUsage {
   limitMb: number;
   pct: number;
   level: "ok" | "warn" | "critical";
+  imageCount?: number;
+  imageBytes?: number;
   decks: { id: string; name: string; cards: number; bytes: number }[];
 }

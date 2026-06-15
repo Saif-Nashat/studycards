@@ -23,8 +23,13 @@ export interface CardData {
   mnemonic?: string;
 }
 
-// A card can carry several images (e.g. UWorld answer screenshots). They're
-// stored as data URIs joined by newlines, so render each one in order.
+// A card can carry several images (e.g. UWorld answer screenshots), stored as
+// newline-joined entries. Each entry is either an inline data: URI (e.g. an
+// image added by hand) or a reference to the shared image store ("img:<id>"),
+// which we serve from /api/image/<id>.
+export function resolveImageSrc(entry: string): string {
+  return entry.startsWith("img:") ? `/api/image/${entry.slice(4)}` : entry;
+}
 function CardImages({ src }: { src?: string }) {
   if (!src) return null;
   const images = src.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -33,7 +38,7 @@ function CardImages({ src }: { src?: string }) {
     <div className="space-y-3">
       {images.map((s, i) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={i} src={s} alt="" className="mt-4 rounded-xl max-h-72 mx-auto object-contain border border-[var(--color-line)]" />
+        <img key={i} src={resolveImageSrc(s)} alt="" className="mt-4 rounded-xl max-h-72 mx-auto object-contain border border-[var(--color-line)]" />
       ))}
     </div>
   );

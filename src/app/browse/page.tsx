@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Plus, Flag, Pencil, Trash2, Loader2, X, Layers, Repeat, Bug, ImagePlus } from "lucide-react";
+import { resolveImageSrc } from "@/components/CardFace";
 
 interface Deck { id: string; name: string; }
 interface Card {
@@ -241,7 +242,7 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
                   <div className="mt-1 relative">
                     {/* Imported cards can hold several images (newline-joined); preview the first. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={String(form[side]).split("\n")[0]} alt="" className="rounded-lg max-h-28 border border-[var(--color-line)]" />
+                    <img src={resolveImageSrc(String(form[side]).split("\n")[0])} alt="" className="rounded-lg max-h-28 border border-[var(--color-line)]" />
                     <button onClick={() => set(side, "")} className="absolute top-1 right-1 bg-white rounded-full p-0.5 shadow text-[var(--color-again)]"><X size={14} /></button>
                   </div>
                 ) : (

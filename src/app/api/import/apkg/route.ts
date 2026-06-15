@@ -4,13 +4,16 @@ import JSZip from "jszip";
 import initSqlJs from "sql.js";
 import fs from "fs";
 import path from "path";
+import { createHash } from "crypto";
 
 export const runtime = "nodejs";
 // Importing a big image-heavy deck means many inserts to the database; give it room.
 export const maxDuration = 300;
 
-// Anki separates a note's fields with the "unit separator" control character.
-const FIELD_SEP = "";
+// Anki separates a note's fields with the "unit separator" control character
+// (0x1F). Written as an explicit escape — a literal invisible character here is
+// too easy to lose in an edit, and losing it splits notes into single letters.
+const FIELD_SEP = "\x1f";
 
 // Skip images bigger than this so one giant scan can't bloat the database row.
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -32,6 +35,83 @@ function cleanText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+// ---- Tag cleanup -----------------------------------------------------------
+// Community decks (AnKing etc.) carry hundreds of deeply-nested housekeeping
+// tags like `#AK_Step1_v12::^Other::^HighYield::1-HighYield`. Those are useless
+// for studying, so we throw away the machinery and map what's left onto a small
+// set of friendly, grouped topic names (e.g. "Reproductive Pathology").
+
+// Whole tags matching this are pure organisational machinery — ignore them.
+const TAG_SKIP =
+  /no[_\s-]?dupes|flag[_\s-]?these|update[_\s-]?tags|image[_\s-]?ready|imageready|cards[_\s-]?anking|potential[_\s-]?dup|ome[_\s-]?banner|physeo|sketchy|amboss|free120|uwsa|highyield|loweryield/i;
+
+// Individual path segments that are noise even when the rest of the tag isn't.
+const TAG_NOISE = new Set([
+  "physiology", "pathology temporary", "other", "systems", "shelf", "done",
+  "general", "subjects", "misc",
+]);
+
+// Ordered, first-match-wins: a normalised segment matching the pattern becomes
+// the friendly label. Specific topics first, broad ones last.
+const TAG_GROUPS: [RegExp, string][] = [
+  [/endometrios/, "Endometriosis"],
+  [/breast/, "Breast"],
+  [/ovary|ovarian|adnex/, "Ovary"],
+  [/cervix|cervical/, "Cervix"],
+  [/vulva|vagina|vulvar/, "Vulva & Vagina"],
+  [/uterus|uterine|myometri|endometrial|endometrium|fibroid|leiomyoma/, "Uterus"],
+  [/menstr|menopaus|amenorrhea|menarche|pms|pcos/, "Menstrual & Menopause"],
+  [/infertil|fertility/, "Infertility"],
+  [/contracept/, "Contraception"],
+  [/std|sti|sexually transmitted|hpv|chlamydia|gonorrhea|syphilis|herpes|trichomon|viruses|virology|infectious/, "Infections"],
+  [/cancer|carcinoma|neoplas|oncolog|tumou?r|malignan/, "Oncology"],
+  [/preeclamp|eclampsia|gestational|pregnan|prenatal|obstetric|labou?r|delivery|placenta|fetal|antepartum|postpartum/, "Obstetrics"],
+  [/reproduc.*phys|repro.*phys|physiology.*anatomy|anatomy.*embryo|repro.*anatomy|embryo/, "Reproductive Physiology & Anatomy"],
+  [/reproduc.*path|repro.*path|female pathology/, "Reproductive Pathology"],
+  [/female repro|reproduc|reproduction|^repro|20 repro/, "Reproductive"],
+  [/gynec|obgyn|ob gyn|gynaec/, "Gynecology"],
+  [/pharmacolog/, "Pharmacology"],
+  [/microbiolog|bugs|antibiotic|antimicrob/, "Microbiology"],
+  [/genetic/, "Genetics"],
+  [/endocrin|hormone|pituitary|prolactin|thyroid/, "Endocrine"],
+  [/surger|perioperative|post op|postoperative|post operative/, "Surgery"],
+  [/ethic/, "Ethics"],
+  [/biostat|epidemiolog|statistic/, "Biostatistics"],
+  [/behavioral|psychiatr|psychiatry/, "Psychiatry & Behavioral"],
+  [/neurolog|nervous/, "Neurology"],
+  [/pathophysiolog/, "Pathophysiology"],
+  [/patholog/, "Pathology"],
+];
+
+// Turn one "::"-separated path segment into lowercase words we can match on.
+function normalizeTagSegment(seg: string): string {
+  return seg
+    .replace(/^[#!^*+~]+/, "")        // leading marker chars (#, !, ^, …)
+    .replace(/^\d+\s*[-_.]\s*/, "")   // numeric priority prefixes ("13_", "1-")
+    .replace(/[_/]+/g, " ")
+    .replace(/-/g, " ")
+    .replace(/[():.,!*#^+&]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+// Reduce a note's raw Anki tag string to a few friendly, grouped topic tags.
+function cleanTags(raw: string): string[] {
+  const found = new Set<string>();
+  for (const tag of raw.split(/\s+/).filter(Boolean)) {
+    if (TAG_SKIP.test(tag)) continue;
+    for (const seg of tag.split("::")) {
+      const n = normalizeTagSegment(seg);
+      if (!n || n.length < 3 || TAG_NOISE.has(n)) continue;
+      for (const [re, label] of TAG_GROUPS) {
+        if (re.test(n)) { found.add(label); break; }
+      }
+    }
+  }
+  return [...found].slice(0, 6);
 }
 
 const IMG_RE = /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
@@ -94,8 +174,8 @@ async function getSharp() {
 // small: this roughly halves the stored size vs. full quality while text and
 // slides stay readable at the size cards are shown. Bump these up if you ever
 // move images out to dedicated file storage and stop worrying about DB size.
-const IMG_MAX_DIM = 1000;
-const IMG_QUALITY = 55;
+const IMG_MAX_DIM = 950;
+const IMG_QUALITY = 52;
 async function shrinkImage(bytes: Uint8Array, filename: string): Promise<{ data: Uint8Array; mime: string }> {
   const ext = filename.toLowerCase().split(".").pop() || "";
   if (ext === "svg" || ext === "gif") return { data: bytes, mime: mimeFor(filename) };
@@ -199,12 +279,15 @@ export async function POST(req: Request) {
       }
     }
 
-    // Resolve a referenced filename to a data: URI we can store and show inline.
-    // Cached so an image used on many cards is only read/encoded once.
-    const dataUriCache = new Map<string, string | null>();
-    async function imageDataUri(filename: string): Promise<string | null> {
-      if (dataUriCache.has(filename)) return dataUriCache.get(filename)!;
-      let result: string | null = null;
+    // Resolve a referenced filename to a stored-image reference ("img:<hash>").
+    // Each unique image (by its compressed bytes) is kept once in `uniqueImages`
+    // and written to the shared Image table later, so a picture reused across
+    // dozens of cards costs storage only once.
+    const uniqueImages = new Map<string, { mime: string; data: string }>();
+    const refCache = new Map<string, string | null>();
+    async function imageRef(filename: string): Promise<string | null> {
+      if (refCache.has(filename)) return refCache.get(filename)!;
+      let ref: string | null = null;
       if (!PROMO_IMAGE.test(filename)) {
         const num = numberByFilename.get(filename);
         const entry = num ? zip.file(num) : null;
@@ -212,26 +295,29 @@ export async function POST(req: Request) {
           const raw = await entry.async("uint8array");
           if (raw.byteLength <= MAX_IMAGE_BYTES) {
             const { data, mime } = await shrinkImage(raw, filename);
-            const b64 = Buffer.from(data).toString("base64");
-            result = `data:${mime};base64,${b64}`;
+            const id = createHash("sha256").update(data).digest("hex").slice(0, 24);
+            if (!uniqueImages.has(id)) {
+              uniqueImages.set(id, { mime, data: Buffer.from(data).toString("base64") });
+            }
+            ref = `img:${id}`;
           }
         }
       }
-      dataUriCache.set(filename, result);
-      return result;
+      refCache.set(filename, ref);
+      return ref;
     }
 
-    // Collect the images referenced in a chunk of HTML, de-duplicated, as data URIs.
+    // Collect the images referenced in a chunk of HTML, de-duplicated, as refs.
     async function collectImages(html: string): Promise<string[]> {
       const seenSrc = new Set<string>();
-      const uris: string[] = [];
+      const refs: string[] = [];
       for (const src of imageRefs(html)) {
         if (seenSrc.has(src)) continue;
         seenSrc.add(src);
-        const uri = await imageDataUri(src);
-        if (uri) uris.push(uri);
+        const ref = await imageRef(src);
+        if (ref) refs.push(ref);
       }
-      return uris;
+      return refs;
     }
 
     const name = (deckName || (file as File).name.replace(/\.apkg$/i, "") || "Imported deck").trim();
@@ -285,17 +371,25 @@ export async function POST(req: Request) {
         front,
         back,
         extra: "",
-        tags: row.tags.trim().replace(/\s+/g, ","),
+        tags: cleanTags(row.tags).join(","),
         source: name,
         imageFront: frontImages.join("\n"),
         imageBack: backImages.join("\n"),
       });
     }
 
-    // Insert in batches. Batches stay small because rows can carry big embedded
-    // images, and oversized inserts can trip database parameter/size limits.
+    // Store the unique images first (skipping any this deck shares with one
+    // already imported), so the cards' "img:<id>" references resolve.
+    const imageRows = [...uniqueImages.entries()].map(([id, v]) => ({ id, mime: v.mime, data: v.data }));
+    const IMG_BATCH = 25;
+    for (let i = 0; i < imageRows.length; i += IMG_BATCH) {
+      await prisma.image.createMany({ data: imageRows.slice(i, i + IMG_BATCH), skipDuplicates: true });
+    }
+
+    // Insert cards in batches. Rows are now tiny (text + short image refs), so
+    // these go fast.
     let added = 0;
-    const BATCH = 50;
+    const BATCH = 100;
     for (let i = 0; i < toCreate.length; i += BATCH) {
       const slice = toCreate.slice(i, i + BATCH);
       const r = await prisma.card.createMany({ data: slice });

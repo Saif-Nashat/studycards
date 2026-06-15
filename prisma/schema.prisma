@@ -64,6 +64,16 @@ model Notebook {
   updatedAt DateTime @updatedAt
 }
 
+// Deduplicated image store. Imported decks reuse the same picture across many
+// cards; instead of embedding it in every card row, we store each unique image
+// once (keyed by a hash of its bytes) and cards reference it as "img:<id>".
+model Image {
+  id        String   @id          // content hash (sha256, truncated)
+  mime      String   @default("image/jpeg")
+  data      String                // base64-encoded image bytes (no data: prefix)
+  createdAt DateTime @default(now())
+}
+
 model Review {
   id           String   @id @default(cuid())
   card         Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)

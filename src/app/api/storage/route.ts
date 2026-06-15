@@ -36,6 +36,14 @@ export async function GET() {
        ORDER BY bytes DESC`
     );
 
+    // Images are de-duplicated into a shared table, so report that pool on its
+    // own rather than trying to split it across decks.
+    const imgRows = await prisma.$queryRawUnsafe<{ n: bigint; bytes: bigint }[]>(
+      `SELECT count(*)::bigint AS n, COALESCE(sum(length(data)), 0)::bigint AS bytes FROM "Image"`
+    );
+    const imageCount = Number(imgRows[0]?.n ?? 0);
+    const imageBytes = Number(imgRows[0]?.bytes ?? 0);
+
     let level: "ok" | "warn" | "critical" = "ok";
     if (pct >= 95) level = "critical";
     else if (pct >= 80) level = "warn";
@@ -46,6 +54,8 @@ export async function GET() {
       limitMb: LIMIT_MB,
       pct,
       level,
+      imageCount,
+      imageBytes,
       decks: deckRows.map((d) => ({
         id: d.id,
         name: d.name,

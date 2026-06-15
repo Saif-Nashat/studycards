@@ -10,6 +10,17 @@ echo.
 echo    To STOP the app: just close this window.
 echo ===================================================
 echo.
+
+rem If the production build is missing (e.g. OneDrive moved it, or a build was
+rem interrupted), rebuild automatically instead of erroring out.
+if not exist ".next\BUILD_ID" (
+  echo    First run since an update - building the app once.
+  echo    This takes a minute or two, please wait...
+  echo.
+  call npm run build
+  echo.
+)
+
 start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep 6; Start-Process 'http://localhost:3000'"
 call npm run start
 echo.

@@ -57,6 +57,15 @@ export default function StoragePanel() {
             <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(2, usage.pct)}%`, background: barColor(usage.level) }} />
           </div>
 
+          {usage.imageBytes != null && usage.imageBytes > 0 && (
+            <div className="flex items-center gap-3 border border-[var(--color-line)] rounded-xl px-3.5 py-2.5 mb-3 bg-[#f3f6ff]/50">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">Shared image library</p>
+                <p className="text-xs text-[var(--color-muted)]">{usage.imageCount} unique images · ~{formatBytes(usage.imageBytes)} (de-duplicated across all decks)</p>
+              </div>
+            </div>
+          )}
+
           {usage.decks.length === 0 ? (
             <p className="text-sm text-[var(--color-muted)]">No decks yet.</p>
           ) : (

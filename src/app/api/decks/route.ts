@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { gcOrphanImages } from "@/lib/images";
 
 // List all decks with counts of due / new / total cards.
 export async function GET() {
@@ -40,5 +41,7 @@ export async function DELETE(req: Request) {
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   await prisma.deck.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  // Reclaim any shared images the deleted deck's cards were the last to use.
+  const freedImages = await gcOrphanImages();
+  return NextResponse.json({ ok: true, freedImages });
 }
