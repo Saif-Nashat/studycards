@@ -1,0 +1,182 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles } from "lucide-react";
+
+interface Deck { id: string; name: string; }
+
+export default function ImportPage() {
+  const [tab, setTab] = useState<"text" | "apkg">("text");
+  const [decks, setDecks] = useState<Deck[]>([]);
+  useEffect(() => { fetch("/api/decks").then((r) => r.json()).then(setDecks); }, []);
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold flex items-center gap-2 mb-1"><Upload size={22} /> Import cards</h1>
+      <p className="text-[var(--color-muted)] mb-5">Add cards you made on claude.ai, or load a free community Anki deck.</p>
+
+      <div className="flex gap-2 mb-5">
+        <button onClick={() => setTab("text")} className={`btn ${tab === "text" ? "btn-primary" : "btn-ghost"}`}><FileText size={16} /> claude.ai cards</button>
+        <button onClick={() => setTab("apkg")} className={`btn ${tab === "apkg" ? "btn-primary" : "btn-ghost"}`}><Package size={16} /> Anki deck (.apkg)</button>
+      </div>
+
+      {tab === "text" ? <TextImport decks={decks} /> : <ApkgImport />}
+    </div>
+  );
+}
+
+function TextImport({ decks }: { decks: Deck[] }) {
+  const [text, setText] = useState("");
+  const [deckMode, setDeckMode] = useState<"existing" | "new">(decks.length ? "existing" : "new");
+  const [deckId, setDeckId] = useState("");
+  const [deckName, setDeckName] = useState("");
+  const [preview, setPreview] = useState<{ count: number; sample: { front: string; back: string }[]; deckName?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
+  const [error, setError] = useState("");
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => setText(String(reader.result || ""));
+    reader.readAsText(f);
+  }
+
+  async function doPreview() {
+    setError(""); setResult(null); setBusy(true);
+    const res = await fetch("/api/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, preview: true }) });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) { setError(data.error); return; }
+    setPreview(data);
+  }
+
+  async function doImport() {
+    setError(""); setBusy(true);
+    const body: Record<string, unknown> = { text };
+    if (deckMode === "existing" && deckId) body.deckId = deckId;
+    if (deckMode === "new" && deckName.trim()) body.deckName = deckName.trim();
+    const res = await fetch("/api/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) { setError(data.error); return; }
+    setResult(data); setPreview(null); setText("");
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="card-surface p-4 bg-[#f3f6ff]/60 text-sm text-[var(--color-muted)] flex gap-3">
+        <Sparkles size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
+        <span>Need cards? Use the ready-made prompt on the <Link href="/settings" className="text-[var(--color-brand)] font-medium">Settings</Link> page on claude.ai, then paste the result here (or upload the .json/.csv file).</span>
+      </div>
+
+      <div className="card-surface p-5 space-y-3">
+        <label className="block">
+          <span className="text-sm font-medium">Paste your cards here</span>
+          <textarea className="input mt-1 font-mono text-sm" rows={8} placeholder='Paste JSON or CSV here…' value={text} onChange={(e) => { setText(e.target.value); setPreview(null); }} />
+        </label>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="btn btn-ghost cursor-pointer text-sm">
+            <FileUp size={16} /> Upload a file
+            <input type="file" accept=".json,.csv,.txt,.tsv" className="hidden" onChange={onFile} />
+          </label>
+          <button onClick={doPreview} className="btn btn-ghost text-sm" disabled={busy || !text.trim()}>
+            {busy ? <Loader2 className="animate-spin" size={16} /> : <Eye size={16} />} Preview
+          </button>
+        </div>
+      </div>
+
+      {preview && (
+        <div className="card-surface p-5 fade-up">
+          <p className="font-semibold mb-2">Found {preview.count} cards. Where should they go?</p>
+          <div className="flex gap-3 mb-3 flex-wrap items-center">
+            <label className="flex items-center gap-1.5 text-sm"><input type="radio" checked={deckMode === "existing"} onChange={() => setDeckMode("existing")} /> Existing deck</label>
+            {deckMode === "existing" && (
+              <select className="input max-w-[220px]" value={deckId} onChange={(e) => setDeckId(e.target.value)}>
+                <option value="">Choose…</option>
+                {decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            )}
+            <label className="flex items-center gap-1.5 text-sm"><input type="radio" checked={deckMode === "new"} onChange={() => setDeckMode("new")} /> New deck</label>
+            {deckMode === "new" && (
+              <input className="input max-w-[220px]" placeholder={preview.deckName || "Deck name"} value={deckName} onChange={(e) => setDeckName(e.target.value)} />
+            )}
+          </div>
+          <div className="space-y-2 mb-4 max-h-52 overflow-y-auto">
+            {preview.sample.map((c, i) => (
+              <div key={i} className="text-sm border border-[var(--color-line)] rounded-lg p-2.5">
+                <p className="font-medium">{c.front}</p>
+                <p className="text-[var(--color-muted)]">{c.back}</p>
+              </div>
+            ))}
+          </div>
+          <button onClick={doImport} className="btn btn-primary" disabled={busy}>
+            {busy ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Import {preview.count} cards
+          </button>
+        </div>
+      )}
+
+      {error && <div className="card-surface p-4 text-[var(--color-again)] text-sm">{error}</div>}
+      {result && (
+        <div className="card-surface p-5 fade-up border-green-200 bg-green-50/50">
+          <p className="flex items-center gap-2 font-semibold text-green-700"><CheckCircle2 size={18} /> Imported {result.added} cards! {result.skipped > 0 && `(${result.skipped} duplicates skipped)`}</p>
+          <Link href="/" className="btn btn-primary mt-3">Go study</Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ApkgImport() {
+  const [file, setFile] = useState<File | null>(null);
+  const [deckName, setDeckName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ added: number; deckName: string } | null>(null);
+  const [error, setError] = useState("");
+
+  async function upload() {
+    if (!file) return;
+    setError(""); setResult(null); setBusy(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    if (deckName.trim()) fd.append("deckName", deckName.trim());
+    const res = await fetch("/api/import/apkg", { method: "POST", body: fd });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) { setError(data.error); return; }
+    setResult(data);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="card-surface p-4 bg-[#f3f6ff]/60 text-sm text-[var(--color-muted)] flex gap-3">
+        <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
+        <span>Download free decks from <b>ankiweb.net/shared</b> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked. Images aren&apos;t imported in this version — text only.</span>
+      </div>
+
+      <div className="card-surface p-5 space-y-3">
+        <label className="btn btn-ghost cursor-pointer w-full justify-center py-6 border-dashed">
+          <FileUp size={18} /> {file ? file.name : "Choose a .apkg file"}
+          <input type="file" accept=".apkg" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        </label>
+        <label className="block">
+          <span className="text-sm font-medium">Deck name (optional — defaults to the file name)</span>
+          <input className="input mt-1" value={deckName} onChange={(e) => setDeckName(e.target.value)} placeholder="e.g. USMLE Step 1 — AnKing" />
+        </label>
+        <button onClick={upload} className="btn btn-primary" disabled={busy || !file}>
+          {busy ? <><Loader2 className="animate-spin" size={16} /> Reading deck (large decks take a moment)…</> : <><Upload size={16} /> Import deck</>}
+        </button>
+      </div>
+
+      {error && <div className="card-surface p-4 text-[var(--color-again)] text-sm">{error}</div>}
+      {result && (
+        <div className="card-surface p-5 fade-up border-green-200 bg-green-50/50">
+          <p className="flex items-center gap-2 font-semibold text-green-700"><CheckCircle2 size={18} /> Imported {result.added} cards into &quot;{result.deckName}&quot;!</p>
+          <Link href="/" className="btn btn-primary mt-3">Go study</Link>
+        </div>
+      )}
+    </div>
+  );
+}

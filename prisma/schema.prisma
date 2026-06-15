@@ -1,0 +1,76 @@
+// Database schema for the flashcard app.
+// Uses SQLite locally; switch `provider` to "postgresql" when deploying.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Deck {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  cards       Card[]
+}
+
+model Card {
+  id        String   @id @default(cuid())
+  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  deckId    String
+
+  // Content
+  type      String   @default("basic") // "basic" | "cloze" | "list"
+  front     String                      // question / cloze text / list prompt
+  back      String   @default("")       // answer (basic). For list, JSON array string.
+  extra     String   @default("")       // explanation shown after reveal ("why this is correct")
+  mnemonic  String   @default("")       // optional memory aid shown after reveal
+  tags      String   @default("")       // comma-separated tags
+  source    String   @default("")       // e.g. "MRCOG p.142" or "AnKing"
+
+  // Optional images (stored as resized data URIs)
+  imageFront String  @default("")
+  imageBack  String  @default("")
+
+  // User markers
+  flagged   Boolean  @default(false)    // manually marked for review-later
+  isLeech   Boolean  @default(false)    // auto-set when failed too many times
+
+  // Spaced-repetition (SM-2) state
+  state        String   @default("new")  // "new" | "learning" | "review"
+  due          DateTime @default(now())
+  intervalDays Float    @default(0)
+  ease         Float    @default(2.5)
+  reps         Int      @default(0)
+  lapses       Int      @default(0)
+  lastRating   String   @default("")     // "again" | "hard" | "good" | "easy"
+  lastReviewed DateTime?
+
+  createdAt DateTime @default(now())
+  reviews   Review[]
+
+  @@index([deckId])
+  @@index([due])
+  @@index([flagged])
+}
+
+model Notebook {
+  id        String   @id @default("main")
+  content   String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  card         Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  cardId       String
+  rating       String
+  intervalDays Float
+  reviewedAt   DateTime @default(now())
+
+  @@index([cardId])
+}
