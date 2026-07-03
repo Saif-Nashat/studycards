@@ -53,12 +53,12 @@ export default function StoragePanel() {
             </span>
             <span className="text-sm font-bold" style={{ color: barColor(usage.level) }}>{usage.pct}%</span>
           </div>
-          <div className="h-3 rounded-full bg-[#eef0f7] overflow-hidden mb-5">
+          <div className="h-3 rounded-full bg-[var(--color-track)] overflow-hidden mb-5">
             <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(2, usage.pct)}%`, background: barColor(usage.level) }} />
           </div>
 
           {usage.imageBytes != null && usage.imageBytes > 0 && (
-            <div className="flex items-center gap-3 border border-[var(--color-line)] rounded-xl px-3.5 py-2.5 mb-3 bg-[#f3f6ff]/50">
+            <div className="flex items-center gap-3 border border-[var(--color-line)] rounded-xl px-3.5 py-2.5 mb-3 bg-[var(--color-tint)]">
               <div className="flex-1 min-w-0">
                 <p className="font-medium">Shared image library</p>
                 <p className="text-xs text-[var(--color-muted)]">{usage.imageCount} unique images · ~{formatBytes(usage.imageBytes)} (de-duplicated across all decks)</p>
@@ -80,7 +80,7 @@ export default function StoragePanel() {
                   <button
                     onClick={() => deleteDeck(d.id, d.name)}
                     disabled={busyId === d.id}
-                    className="btn btn-ghost py-1.5 px-2.5 text-sm text-[var(--color-again)] hover:bg-[#fef2f2]"
+                    className="btn btn-ghost py-1.5 px-2.5 text-sm text-[var(--color-again)] hover:bg-[var(--color-danger-bg)]"
                     title="Delete this deck to free space"
                   >
                     {busyId === d.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}

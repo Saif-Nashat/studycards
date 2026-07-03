@@ -63,10 +63,24 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Hero */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="card-surface p-7 md:p-9 relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-[var(--color-brand)]/10 blur-2xl" />
-        <p className="text-[var(--color-muted)] font-medium">Welcome back 👋</p>
-        <h1 className="text-3xl md:text-4xl font-bold mt-1">Ready to revise?</h1>
+        className="card-surface gradient-ring p-7 md:p-9 relative overflow-hidden">
+        <motion.div
+          className="absolute -right-10 -top-10 w-52 h-52 rounded-full bg-[var(--color-accent)]/25 blur-3xl"
+          animate={{ x: [0, -16, 0], y: [0, 12, 0], scale: [1, 1.18, 1] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute right-24 -bottom-16 w-44 h-44 rounded-full bg-[var(--color-gold)]/20 blur-3xl"
+          animate={{ x: [0, 14, 0], y: [0, -10, 0], scale: [1.05, 0.9, 1.05] }}
+          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -left-12 -bottom-14 w-40 h-40 rounded-full bg-[var(--color-teal)]/20 blur-3xl"
+          animate={{ x: [0, 12, 0], y: [0, -8, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <p className="text-[var(--color-muted)] font-medium relative">Welcome back 👋</p>
+        <h1 className="text-3xl md:text-5xl font-extrabold mt-1 relative tracking-tight">Ready to <span className="text-gradient">revise?</span></h1>
         <p className="text-[var(--color-muted)] mt-2 max-w-lg">
           You have <b className="text-[var(--color-ink)]">{stats.due + stats.new}</b> cards waiting across{" "}
           <b className="text-[var(--color-ink)]">{stats.decks}</b> deck{stats.decks === 1 ? "" : "s"}.
@@ -81,12 +95,14 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map((s, i) => (
           <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }} className="card-surface p-5">
+            transition={{ delay: i * 0.05 }} className="card-surface card-lift p-5">
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--color-muted)]">{s.label}</span>
-              <s.icon size={18} style={{ color: s.color }} />
+              <span className="grid place-items-center w-9 h-9 rounded-xl" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 16%, transparent)` }}>
+                <s.icon size={18} />
+              </span>
             </div>
-            <p className="text-3xl font-bold mt-2">{s.value}</p>
+            <p className="text-3xl font-bold mt-2 tabular-nums">{s.value}</p>
           </motion.div>
         ))}
       </div>
@@ -110,7 +126,7 @@ export default function Dashboard() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {decks.map((d, i) => (
               <motion.div key={d.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }} className="card-surface p-5 flex flex-col">
+                transition={{ delay: i * 0.04 }} className="card-surface card-lift p-5 flex flex-col">
                 <div className="flex items-start justify-between">
                   <h3 className="font-semibold text-lg leading-tight">{d.name}</h3>
                   <button onClick={() => deleteDeck(d.id, d.name)} className="text-[var(--color-muted)] hover:text-[var(--color-again)] p-1" title="Delete deck">
@@ -142,7 +158,7 @@ export default function Dashboard() {
             {tags.map((t) => (
               <button key={t.tag}
                 onClick={() => router.push(`/study?go=1&mode=due&tag=${encodeURIComponent(t.tag)}&tagName=${encodeURIComponent(t.tag)}`)}
-                className="card-surface px-3.5 py-2 text-sm font-medium hover:border-[var(--color-brand)] transition flex items-center gap-2">
+                className="card-surface card-lift px-3.5 py-2 text-sm font-medium transition flex items-center gap-2">
                 {t.tag}
                 <span className={`text-xs font-bold ${t.ready > 0 ? "text-[var(--color-brand)]" : "text-[var(--color-muted)]"}`}>{t.ready}</span>
                 <span className="text-xs text-[var(--color-muted)]">/ {t.total}</span>

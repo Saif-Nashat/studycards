@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
-/* ---- Design tokens ---- */
+/* ---- Design tokens ----
+   Brand + rating colours stay constant across themes; everything that changes
+   between light and dark lives in the :root / [data-theme="dark"] blocks below
+   so a single attribute on <html> re-skins the whole app. */
 @theme {
-  --color-bg: #f6f7fb;
-  --color-surface: #ffffff;
-  --color-ink: #0f172a;
-  --color-muted: #64748b;
-  --color-line: #e7e9f2;
-
-  --color-brand: #4f46e5;     /* indigo */
-  --color-brand-dark: #4338ca;
-  --color-accent: #0ea5e9;    /* sky */
-  --color-teal: #14b8a6;
+  /* Forest palette — deep pine as the brand, with emerald / teal / moss / gold
+     accents so the UI can be colourful without leaving the green family. */
+  --color-brand: #15803d;        /* forest green */
+  --color-brand-dark: #14532d;   /* deep pine */
+  --color-accent: #10b981;       /* emerald */
+  --color-teal: #0d9488;         /* teal */
+  --color-mint: #34d399;         /* bright mint, gradient highlight */
+  --color-lime: #65a30d;         /* moss */
+  --color-gold: #d97706;         /* warm pop for accents */
 
   --color-again: #ef4444;
   --color-hard: #f59e0b;
@@ -22,55 +24,251 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Light theme (default) */
+:root {
+  color-scheme: light;
+  --color-bg: #eef5ef;
+  --color-surface: #ffffff;
+  --color-surface-2: #e7f1e9;   /* subtle hover / fills */
+  --color-ink: #0b1a10;
+  --color-muted: #566b5c;
+  --color-line: #d6e6da;
+  --color-track: #e1efe6;        /* progress-bar tracks */
+  --color-tint: #e9f7ee;         /* soft info panels / selected rows */
+  --color-danger-bg: #fef2f2;    /* leech / delete-hover wash */
+  --color-chip-bg: #d3f1de;
+  --color-chip-ink: #14532d;
+  --color-nav: rgba(255, 255, 255, 0.72);
+  --shadow-key: rgba(15, 60, 35, 0.14);
+  --shadow-glow: rgba(21, 128, 61, 0.30);
+  /* Drifting aurora orbs */
+  --blob-1: rgba(21, 128, 61, 0.22);
+  --blob-2: rgba(13, 148, 136, 0.18);
+  --blob-3: rgba(217, 119, 6, 0.12);
+}
+
+/* Dark theme */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #06120c;
+  --color-surface: #0c1d14;
+  --color-surface-2: #15301f;
+  --color-ink: #e2f1e7;
+  --color-muted: #82a08f;
+  --color-line: #1e3826;
+  --color-track: #15301f;
+  --color-tint: #10241a;
+  --color-danger-bg: #3a1620;
+  --color-chip-bg: #143b28;
+  --color-chip-ink: #6ee7b7;
+  --color-nav: rgba(5, 15, 10, 0.74);
+  --shadow-key: rgba(0, 0, 0, 0.5);
+  --shadow-glow: rgba(16, 185, 129, 0.30);
+  --blob-1: rgba(16, 185, 129, 0.20);
+  --blob-2: rgba(13, 148, 136, 0.18);
+  --blob-3: rgba(217, 119, 6, 0.12);
+}
+
 html, body {
   height: 100%;
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 100% -10%, rgba(79, 70, 229, 0.10), transparent 60%),
-    radial-gradient(1000px 500px at -10% 10%, rgba(14, 165, 233, 0.10), transparent 55%),
-    var(--color-bg);
+  background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
+/* ---- Aurora ----
+   Three softly drifting coloured orbs (forest / teal / gold) behind everything,
+   so the whole app feels alive. Rendered from a fixed, pointer-events-none div
+   placed at the top of <body> (see layout.tsx). */
+.aurora {
+  position: fixed; inset: 0; z-index: -1;
+  overflow: hidden; pointer-events: none;
+}
+.aurora span {
+  position: absolute; border-radius: 50%; filter: blur(85px);
+}
+.aurora .a1 {
+  width: 38rem; height: 38rem; top: -13rem; right: -11rem;
+  background: var(--blob-1);
+  animation: drift-a 24s ease-in-out infinite alternate;
+}
+.aurora .a2 {
+  width: 32rem; height: 32rem; bottom: -12rem; left: -10rem;
+  background: var(--blob-2);
+  animation: drift-b 30s ease-in-out infinite alternate;
+}
+.aurora .a3 {
+  width: 26rem; height: 26rem; top: 30%; left: 45%;
+  background: var(--blob-3);
+  animation: drift-c 36s ease-in-out infinite alternate;
+}
+@keyframes drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(-9rem, 11rem) scale(1.18); }
+}
+@keyframes drift-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(10rem, -9rem) scale(0.92); }
+}
+@keyframes drift-c {
+  from { transform: translate(-4rem, 0) scale(0.9); opacity: .7; }
+  to   { transform: translate(6rem, -7rem) scale(1.25); opacity: 1; }
+}
+
 /* Reusable bits */
 .card-surface {
+  position: relative;
   background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-xl2);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px -12px rgba(16, 24, 40, 0.12);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 14px 34px -14px var(--shadow-key);
+  transition: transform .28s cubic-bezier(.2,.7,.3,1), box-shadow .28s ease, border-color .28s ease;
+}
+/* Interactive cards (stats, decks, topics) lift and glow toward the cursor. */
+.card-lift:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-brand) 55%, var(--color-line));
+  box-shadow: 0 3px 6px rgba(4, 120, 87, 0.08), 0 22px 46px -16px var(--shadow-glow);
+}
+
+/* Animated gradient border for hero / highlight cards. Two stacked backgrounds:
+   an opaque surface (padding-box) over a moving multi-green gradient (border-box). */
+.gradient-ring {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    linear-gradient(115deg, var(--color-brand), var(--color-mint), var(--color-teal), var(--color-gold), var(--color-brand)) border-box;
+  background-size: auto, 300% 300%;
+  animation: ring-move 8s linear infinite;
+}
+@keyframes ring-move {
+  from { background-position: 0 0, 0% 50%; }
+  to   { background-position: 0 0, 300% 50%; }
 }
 
 .btn {
+  position: relative; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   font-weight: 600; border-radius: 0.85rem; padding: 0.65rem 1.1rem;
-  transition: transform .08s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+  transition: transform .12s cubic-bezier(.2,.7,.3,1), box-shadow .2s ease, background .2s ease,
+    background-position .5s ease, opacity .2s ease;
   cursor: pointer; border: 1px solid transparent;
 }
-.btn:active { transform: translateY(1px); }
-.btn-primary { background: var(--color-brand); color: white; box-shadow: 0 8px 20px -8px rgba(79,70,229,.7); }
-.btn-primary:hover { background: var(--color-brand-dark); }
+.btn:active { transform: translateY(1px) scale(.99); }
+.btn-primary {
+  background: linear-gradient(120deg, var(--color-brand-dark) 0%, var(--color-brand) 35%, var(--color-accent) 65%, var(--color-mint) 100%);
+  background-size: 220% auto;
+  color: white;
+  box-shadow: 0 8px 22px -8px var(--shadow-glow);
+}
+.btn-primary:hover {
+  background-position: right center;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -8px var(--shadow-glow), 0 0 0 1px color-mix(in srgb, var(--color-mint) 40%, transparent);
+}
+/* Light sweep across primary buttons on hover. */
+.btn-primary::after {
+  content: ""; position: absolute; top: 0; left: -80%; width: 45%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.4), transparent);
+  transform: skewX(-18deg);
+}
+.btn-primary:hover::after { animation: sheen .8s ease; }
+@keyframes sheen { to { left: 130%; } }
 .btn-ghost { background: transparent; color: var(--color-ink); border-color: var(--color-line); }
-.btn-ghost:hover { background: #f1f3fb; }
+.btn-ghost:hover { background: var(--color-surface-2); border-color: color-mix(in srgb, var(--color-brand) 40%, var(--color-line)); }
 
 .input {
   width: 100%; border: 1px solid var(--color-line); border-radius: 0.85rem;
-  padding: 0.7rem 0.95rem; background: white; color: var(--color-ink); outline: none;
+  padding: 0.7rem 0.95rem; background: var(--color-surface); color: var(--color-ink); outline: none;
   transition: border .15s ease, box-shadow .15s ease;
 }
-.input:focus { border-color: var(--color-brand); box-shadow: 0 0 0 4px rgba(79,70,229,.12); }
+.input:focus { border-color: var(--color-brand); box-shadow: 0 0 0 4px rgba(21,128,61,.16); }
 
 .chip {
   display: inline-flex; align-items: center; gap: .35rem;
   font-size: .72rem; font-weight: 600; padding: .2rem .55rem; border-radius: 999px;
-  background: #eef2ff; color: var(--color-brand-dark);
+  background: var(--color-chip-bg); color: var(--color-chip-ink);
+  animation: pop .25s ease both;
+}
+@keyframes pop {
+  from { opacity: 0; transform: scale(.85); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .fade-up { animation: fadeUp .35s ease both; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Headline accent: a shimmering forest→mint→gold gradient that slowly flows. */
+.text-gradient {
+  background: linear-gradient(92deg, var(--color-brand), var(--color-accent), var(--color-mint), var(--color-teal), var(--color-brand));
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-flow 6s linear infinite;
+}
+@keyframes text-flow {
+  from { background-position: 0% center; }
+  to   { background-position: 250% center; }
+}
+
+/* App logo badge — gradient tile with a rotating conic sheen; tilts on hover. */
+.logo-badge {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, var(--color-brand-dark), var(--color-brand), var(--color-teal));
+  box-shadow: 0 6px 18px -6px var(--shadow-glow);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.logo-badge::before {
+  content: ""; position: absolute; inset: -40%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,.35) 40deg, transparent 90deg);
+  animation: spin 6s linear infinite;
+}
+.logo-badge > * { position: relative; z-index: 1; }
+.logo-badge:hover { transform: rotate(-8deg) scale(1.08); box-shadow: 0 10px 24px -6px var(--shadow-glow); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Progress fills: a flowing multi-green gradient, so active bars shimmer. */
+.progress-glow {
+  background: linear-gradient(90deg, var(--color-brand), var(--color-mint), var(--color-teal), var(--color-lime), var(--color-brand));
+  background-size: 300% 100%;
+  animation: slide-gradient 3s linear infinite;
+}
+@keyframes slide-gradient {
+  from { background-position: 0% 0; }
+  to   { background-position: 300% 0; }
+}
+
+/* Soft pulsing glow — for celebratory badges / call-to-action moments. */
+.pulse-glow { animation: pulse-glow 2.4s ease-in-out infinite; }
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 45%, transparent); }
+  50%      { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-brand) 0%, transparent); }
+}
+
+/* Gentle float for decorative icons. */
+.float { animation: float 5s ease-in-out infinite; }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+/* Respect users who prefer less motion: freeze the decorative animations. */
+@media (prefers-reduced-motion: reduce) {
+  .aurora span,
+  .gradient-ring,
+  .text-gradient,
+  .logo-badge::before,
+  .progress-glow,
+  .pulse-glow,
+  .float,
+  .btn-primary:hover::after,
+  .chip { animation: none; }
+}
 
 /* ---- Rich-text notebook ----
    Tailwind's reset strips heading sizes and list bullets, so re-add the visual
@@ -96,5 +294,5 @@ body {
   width: 2rem; height: 2rem; border-radius: .55rem; color: var(--color-ink);
   border: 1px solid transparent; cursor: pointer; transition: background .15s ease, border .15s ease;
 }
-.rt-tool:hover { background: #f1f3fb; }
-.rt-tool[data-active="true"] { background: #eef2ff; border-color: var(--color-line); color: var(--color-brand-dark); }
+.rt-tool:hover { background: var(--color-surface-2); }
+.rt-tool[data-active="true"] { background: var(--color-chip-bg); border-color: var(--color-line); color: var(--color-chip-ink); }

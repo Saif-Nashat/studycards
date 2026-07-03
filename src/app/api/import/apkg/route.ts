@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { bucketsFromAnkiTags } from "@/lib/tags";
 import JSZip from "jszip";
 import initSqlJs from "sql.js";
 import fs from "fs";
@@ -35,83 +36,6 @@ function cleanText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-}
-
-// ---- Tag cleanup -----------------------------------------------------------
-// Community decks (AnKing etc.) carry hundreds of deeply-nested housekeeping
-// tags like `#AK_Step1_v12::^Other::^HighYield::1-HighYield`. Those are useless
-// for studying, so we throw away the machinery and map what's left onto a small
-// set of friendly, grouped topic names (e.g. "Reproductive Pathology").
-
-// Whole tags matching this are pure organisational machinery — ignore them.
-const TAG_SKIP =
-  /no[_\s-]?dupes|flag[_\s-]?these|update[_\s-]?tags|image[_\s-]?ready|imageready|cards[_\s-]?anking|potential[_\s-]?dup|ome[_\s-]?banner|physeo|sketchy|amboss|free120|uwsa|highyield|loweryield/i;
-
-// Individual path segments that are noise even when the rest of the tag isn't.
-const TAG_NOISE = new Set([
-  "physiology", "pathology temporary", "other", "systems", "shelf", "done",
-  "general", "subjects", "misc",
-]);
-
-// Ordered, first-match-wins: a normalised segment matching the pattern becomes
-// the friendly label. Specific topics first, broad ones last.
-const TAG_GROUPS: [RegExp, string][] = [
-  [/endometrios/, "Endometriosis"],
-  [/breast/, "Breast"],
-  [/ovary|ovarian|adnex/, "Ovary"],
-  [/cervix|cervical/, "Cervix"],
-  [/vulva|vagina|vulvar/, "Vulva & Vagina"],
-  [/uterus|uterine|myometri|endometrial|endometrium|fibroid|leiomyoma/, "Uterus"],
-  [/menstr|menopaus|amenorrhea|menarche|pms|pcos/, "Menstrual & Menopause"],
-  [/infertil|fertility/, "Infertility"],
-  [/contracept/, "Contraception"],
-  [/std|sti|sexually transmitted|hpv|chlamydia|gonorrhea|syphilis|herpes|trichomon|viruses|virology|infectious/, "Infections"],
-  [/cancer|carcinoma|neoplas|oncolog|tumou?r|malignan/, "Oncology"],
-  [/preeclamp|eclampsia|gestational|pregnan|prenatal|obstetric|labou?r|delivery|placenta|fetal|antepartum|postpartum/, "Obstetrics"],
-  [/reproduc.*phys|repro.*phys|physiology.*anatomy|anatomy.*embryo|repro.*anatomy|embryo/, "Reproductive Physiology & Anatomy"],
-  [/reproduc.*path|repro.*path|female pathology/, "Reproductive Pathology"],
-  [/female repro|reproduc|reproduction|^repro|20 repro/, "Reproductive"],
-  [/gynec|obgyn|ob gyn|gynaec/, "Gynecology"],
-  [/pharmacolog/, "Pharmacology"],
-  [/microbiolog|bugs|antibiotic|antimicrob/, "Microbiology"],
-  [/genetic/, "Genetics"],
-  [/endocrin|hormone|pituitary|prolactin|thyroid/, "Endocrine"],
-  [/surger|perioperative|post op|postoperative|post operative/, "Surgery"],
-  [/ethic/, "Ethics"],
-  [/biostat|epidemiolog|statistic/, "Biostatistics"],
-  [/behavioral|psychiatr|psychiatry/, "Psychiatry & Behavioral"],
-  [/neurolog|nervous/, "Neurology"],
-  [/pathophysiolog/, "Pathophysiology"],
-  [/patholog/, "Pathology"],
-];
-
-// Turn one "::"-separated path segment into lowercase words we can match on.
-function normalizeTagSegment(seg: string): string {
-  return seg
-    .replace(/^[#!^*+~]+/, "")        // leading marker chars (#, !, ^, …)
-    .replace(/^\d+\s*[-_.]\s*/, "")   // numeric priority prefixes ("13_", "1-")
-    .replace(/[_/]+/g, " ")
-    .replace(/-/g, " ")
-    .replace(/[():.,!*#^+&]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
-
-// Reduce a note's raw Anki tag string to a few friendly, grouped topic tags.
-function cleanTags(raw: string): string[] {
-  const found = new Set<string>();
-  for (const tag of raw.split(/\s+/).filter(Boolean)) {
-    if (TAG_SKIP.test(tag)) continue;
-    for (const seg of tag.split("::")) {
-      const n = normalizeTagSegment(seg);
-      if (!n || n.length < 3 || TAG_NOISE.has(n)) continue;
-      for (const [re, label] of TAG_GROUPS) {
-        if (re.test(n)) { found.add(label); break; }
-      }
-    }
-  }
-  return [...found].slice(0, 6);
 }
 
 const IMG_RE = /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
@@ -371,7 +295,7 @@ export async function POST(req: Request) {
         front,
         back,
         extra: "",
-        tags: cleanTags(row.tags).join(","),
+        tags: bucketsFromAnkiTags(row.tags).join(","),
         source: name,
         imageFront: frontImages.join("\n"),
         imageBack: backImages.join("\n"),

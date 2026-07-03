@@ -67,7 +67,7 @@ function TextImport({ decks }: { decks: Deck[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="card-surface p-4 bg-[#f3f6ff]/60 text-sm text-[var(--color-muted)] flex gap-3">
+      <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Sparkles size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
         <span>Need cards? Use the ready-made prompt on the <Link href="/settings" className="text-[var(--color-brand)] font-medium">Settings</Link> page on claude.ai, then paste the result here (or upload the .json/.csv file).</span>
       </div>
@@ -120,8 +120,8 @@ function TextImport({ decks }: { decks: Deck[] }) {
 
       {error && <div className="card-surface p-4 text-[var(--color-again)] text-sm">{error}</div>}
       {result && (
-        <div className="card-surface p-5 fade-up border-green-200 bg-green-50/50">
-          <p className="flex items-center gap-2 font-semibold text-green-700"><CheckCircle2 size={18} /> Imported {result.added} cards! {result.skipped > 0 && `(${result.skipped} duplicates skipped)`}</p>
+        <div className="card-surface p-5 fade-up" style={{ background: "var(--color-tint)", borderColor: "var(--color-brand)" }}>
+          <p className="flex items-center gap-2 font-semibold text-[var(--color-brand)]"><CheckCircle2 size={18} /> Imported {result.added} cards! {result.skipped > 0 && `(${result.skipped} duplicates skipped)`}</p>
           <Link href="/" className="btn btn-primary mt-3">Go study</Link>
         </div>
       )}
@@ -163,7 +163,7 @@ function ApkgImport() {
 
   return (
     <div className="space-y-4">
-      <div className="card-surface p-4 bg-[#f3f6ff]/60 text-sm text-[var(--color-muted)] flex gap-3">
+      <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
         <span>Download free decks from <b>ankiweb.net/shared</b> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own image-rich decks (UWorld, etc.) — pictures are imported too. Big decks (100MB+) are fine; the upload just takes a minute. If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
       </div>
@@ -184,8 +184,8 @@ function ApkgImport() {
 
       {error && <div className="card-surface p-4 text-[var(--color-again)] text-sm">{error}</div>}
       {result && (
-        <div className="card-surface p-5 fade-up border-green-200 bg-green-50/50">
-          <p className="flex items-center gap-2 font-semibold text-green-700"><CheckCircle2 size={18} /> Imported {result.added} cards into &quot;{result.deckName}&quot;!</p>
+        <div className="card-surface p-5 fade-up" style={{ background: "var(--color-tint)", borderColor: "var(--color-brand)" }}>
+          <p className="flex items-center gap-2 font-semibold text-[var(--color-brand)]"><CheckCircle2 size={18} /> Imported {result.added} cards into &quot;{result.deckName}&quot;!</p>
           <Link href="/" className="btn btn-primary mt-3">Go study</Link>
         </div>
       )}

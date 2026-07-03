@@ -51,7 +51,7 @@ export default function SettingsPage() {
         <p className="text-[var(--color-muted)] text-sm">
           Your password lives in a file called <code>.env</code> (when running on your laptop) or in your hosting settings (when online).
           To change it on your laptop, open <code>.env</code> in the <code>studycards</code> folder and edit the line
-          <code className="block bg-[#f1f3fb] rounded px-2 py-1 my-1">APP_PASSWORD=&quot;your-new-password&quot;</code>
+          <code className="block bg-[var(--color-surface-2)] rounded px-2 py-1 my-1">APP_PASSWORD=&quot;your-new-password&quot;</code>
           then restart the app. The deployment guide explains how to set it online.
         </p>
       </section>

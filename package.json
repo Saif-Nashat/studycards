@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test scripts/*.test.ts",
     "seed": "node scripts/seed.mjs",
     "setup": "prisma generate && prisma db push && node scripts/seed.mjs",
     "postinstall": "prisma generate"

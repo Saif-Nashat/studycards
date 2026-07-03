@@ -122,7 +122,7 @@ function BrowseInner() {
                 <span className="chip shrink-0 mt-0.5">{c.type}</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium flex items-center gap-2">
-                    {c.isLeech && <span className="chip" style={{ background: "#fef2f2", color: "var(--color-again)" }}><Bug size={11} /> Leech</span>}
+                    {c.isLeech && <span className="chip" style={{ background: "var(--color-danger-bg)", color: "var(--color-again)" }}><Bug size={11} /> Leech</span>}
                     <span className="truncate">{c.front.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, "[$1]")}</span>
                     {(c.imageFront || c.imageBack) && <ImagePlus size={13} className="text-[var(--color-muted)] shrink-0" />}
                   </p>
@@ -133,10 +133,10 @@ function BrowseInner() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {c.type === "basic" && <button onClick={() => addReverse(c)} className="p-1.5 rounded-lg hover:bg-[#f1f3fb] text-[var(--color-muted)]" title="Create reverse card (swap Q & A)"><Repeat size={16} /></button>}
-                  <button onClick={() => toggleFlag(c)} className={`p-1.5 rounded-lg hover:bg-[#f1f3fb] ${c.flagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)]"}`} title="Flag"><Flag size={16} /></button>
-                  <button onClick={() => setEditing(c)} className="p-1.5 rounded-lg hover:bg-[#f1f3fb] text-[var(--color-muted)]" title="Edit"><Pencil size={16} /></button>
-                  <button onClick={() => remove(c)} className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-muted)] hover:text-[var(--color-again)]" title="Delete"><Trash2 size={16} /></button>
+                  {c.type === "basic" && <button onClick={() => addReverse(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]" title="Create reverse card (swap Q & A)"><Repeat size={16} /></button>}
+                  <button onClick={() => toggleFlag(c)} className={`p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] ${c.flagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)]"}`} title="Flag"><Flag size={16} /></button>
+                  <button onClick={() => setEditing(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]" title="Edit"><Pencil size={16} /></button>
+                  <button onClick={() => remove(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-danger-bg)] text-[var(--color-muted)] hover:text-[var(--color-again)]" title="Delete"><Trash2 size={16} /></button>
                 </div>
               </div>
             ))}
@@ -243,7 +243,7 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
                     {/* Imported cards can hold several images (newline-joined); preview the first. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={resolveImageSrc(String(form[side]).split("\n")[0])} alt="" className="rounded-lg max-h-28 border border-[var(--color-line)]" />
-                    <button onClick={() => set(side, "")} className="absolute top-1 right-1 bg-white rounded-full p-0.5 shadow text-[var(--color-again)]"><X size={14} /></button>
+                    <button onClick={() => set(side, "")} className="absolute top-1 right-1 bg-[var(--color-surface)] rounded-full p-0.5 shadow text-[var(--color-again)]"><X size={14} /></button>
                   </div>
                 ) : (
                   <label className="btn btn-ghost mt-1 w-full cursor-pointer text-sm py-2">

@@ -92,7 +92,7 @@ export function CardAnswer({ card }: { card: CardData }) {
         <p className="text-xl md:text-2xl leading-relaxed">
           {segments.map((s, i) =>
             s.answer ? (
-              <mark key={i} className="bg-indigo-100 text-indigo-800 rounded px-1">{s.text}</mark>
+              <mark key={i} className="rounded px-1" style={{ background: "var(--color-chip-bg)", color: "var(--color-chip-ink)" }}>{s.text}</mark>
             ) : (
               <span key={i}>{s.text}</span>
             )
@@ -148,8 +148,8 @@ function AnswerExtras({ card }: { card: CardData }) {
   return (
     <div className="mt-3 space-y-2">
       {card.extra && (
-        <div className="rounded-xl bg-[#f3f6ff] border border-[var(--color-line)] p-3.5 text-sm">
-          <p className="font-semibold text-[var(--color-brand-dark)] mb-1">Why this is correct</p>
+        <div className="rounded-xl bg-[var(--color-tint)] border border-[var(--color-line)] p-3.5 text-sm">
+          <p className="font-semibold text-[var(--color-chip-ink)] mb-1">Why this is correct</p>
           <div className="text-[var(--color-ink)] leading-relaxed">
             {card.extra.split(/\r?\n/).map((l, i) => <p key={i}>{l || " "}</p>)}
           </div>

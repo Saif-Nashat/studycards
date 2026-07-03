@@ -70,12 +70,14 @@ export default function InsightsPage() {
       {/* Top stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {topCards.map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="card-surface p-5">
+          <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="card-surface card-lift p-5">
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--color-muted)]">{s.label}</span>
-              <s.icon size={18} style={{ color: s.color }} />
+              <span className="grid place-items-center w-9 h-9 rounded-xl" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 16%, transparent)` }}>
+                <s.icon size={18} />
+              </span>
             </div>
-            <p className="text-3xl font-bold mt-2">{s.value} {"suffix" in s && s.suffix ? <span className="text-base font-medium text-[var(--color-muted)]">{s.suffix}</span> : null}</p>
+            <p className="text-3xl font-bold mt-2 tabular-nums">{s.value} {"suffix" in s && s.suffix ? <span className="text-base font-medium text-[var(--color-muted)]">{s.suffix}</span> : null}</p>
           </motion.div>
         ))}
       </div>
@@ -120,7 +122,7 @@ export default function InsightsPage() {
                     <span className="font-medium">{r.label}</span>
                     <span className="text-[var(--color-muted)]">{r.value} · {pct(r.value)}%</span>
                   </div>
-                  <div className="h-2.5 rounded-full bg-[#eef0f7] overflow-hidden">
+                  <div className="h-2.5 rounded-full bg-[var(--color-track)] overflow-hidden">
                     <motion.div className="h-full rounded-full" style={{ background: r.color }} initial={{ width: 0 }} animate={{ width: `${pct(r.value)}%` }} transition={{ duration: 0.6 }} />
                   </div>
                 </div>
@@ -142,7 +144,7 @@ export default function InsightsPage() {
                 {data.weakTopics.map((t) => (
                   <div key={t.tag} className="flex items-center gap-3">
                     <span className="chip shrink-0 min-w-[90px] justify-center">{t.tag}</span>
-                    <div className="flex-1 h-2.5 rounded-full bg-[#eef0f7] overflow-hidden">
+                    <div className="flex-1 h-2.5 rounded-full bg-[var(--color-track)] overflow-hidden">
                       <motion.div className="h-full rounded-full" style={{ background: accuracyColor(t.accuracy) }}
                         initial={{ width: 0 }} animate={{ width: `${t.accuracy}%` }} transition={{ duration: 0.6 }} />
                     </div>
@@ -159,7 +161,7 @@ export default function InsightsPage() {
           <div className="card-surface p-6 lg:col-span-2">
             <h2 className="font-bold mb-1 flex items-center gap-2"><Layers size={18} /> Your collection ({mat.total} cards)</h2>
             <p className="text-sm text-[var(--color-muted)] mb-4">How well-learned your cards are. &quot;Mature&quot; cards have an interval of 21+ days — they&apos;re sticking.</p>
-            <div className="flex h-5 rounded-full overflow-hidden mb-4 bg-[#eef0f7]">
+            <div className="flex h-5 rounded-full overflow-hidden mb-4 bg-[var(--color-track)]">
               {matSegs.map((s) => s.value > 0 && (
                 <motion.div key={s.label} style={{ background: s.color }} initial={{ width: 0 }}
                   animate={{ width: `${(s.value / Math.max(1, mat.total)) * 100}%` }} transition={{ duration: 0.6 }} title={`${s.label}: ${s.value}`} />
