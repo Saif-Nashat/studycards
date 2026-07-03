@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2, Play, FlaskConical, Flame, BookOpen, Timer, Coffee, Target, CircleOff } from "lucide-react";
 import StudySession from "@/components/StudySession";
 import { parseTimerMode, DEFAULT_POMODORO, POMO_LIMITS, type TimerMode } from "@/lib/timer";
+import { groupTags } from "@/lib/tagGroups";
 
 function StudyInner() {
   const params = useSearchParams();
@@ -120,17 +121,24 @@ function TestBuilder() {
               <p className="text-sm text-[var(--color-muted)]">No tags yet — import some cards first.</p>
             ) : (
               <>
-                <p className="text-xs text-[var(--color-muted)] mb-2">Leave all unselected to include every subject.</p>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((t) => {
-                    const on = selected.has(t.tag);
-                    return (
-                      <button key={t.tag} onClick={() => toggle(t.tag)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${on ? "bg-[var(--color-brand)] text-white border-transparent" : "bg-[var(--color-surface)] border-[var(--color-line)] hover:border-[var(--color-brand)]"}`}>
-                        {t.tag} <span className={on ? "opacity-80" : "text-[var(--color-muted)]"}>{t.total}</span>
-                      </button>
-                    );
-                  })}
+                <p className="text-xs text-[var(--color-muted)] mb-3">Leave all unselected to include every subject.</p>
+                <div className="space-y-3">
+                  {groupTags(tags).map((group) => (
+                    <div key={group.key}>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] mb-1.5">{group.label}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.items.map((t) => {
+                          const on = selected.has(t.tag);
+                          return (
+                            <button key={t.tag} onClick={() => toggle(t.tag)}
+                              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${on ? "bg-[var(--color-brand)] text-white border-transparent" : "bg-[var(--color-surface)] border-[var(--color-line)] hover:border-[var(--color-brand)]"}`}>
+                              {t.tag} <span className={on ? "opacity-80" : "text-[var(--color-muted)]"}>{t.total}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             )}

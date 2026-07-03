@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Tag } from "lucide-react";
+import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Tag, Trophy } from "lucide-react";
+import { groupTags } from "@/lib/tagGroups";
 
 interface Stats { total: number; due: number; new: number; flagged: number; hard: number; decks: number; reviewedToday: number; }
 interface Deck { id: string; name: string; description: string; total: number; due: number; new: number; }
@@ -88,6 +89,7 @@ export default function Dashboard() {
         <div className="flex flex-wrap gap-3 mt-5">
           <Link href="/study?go=1&mode=due" className="btn btn-primary"><Play size={18} /> Study all due ({stats.due + stats.new})</Link>
           <Link href="/hard" className="btn btn-ghost"><Flame size={18} /> Hard cards ({stats.hard})</Link>
+          <Link href="/achievements" className="btn btn-ghost"><Trophy size={18} /> Trophies</Link>
         </div>
       </motion.div>
 
@@ -149,20 +151,27 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Study by topic */}
+      {/* Study by topic — organised into Basic systems vs Medical topics. */}
       {tags.length > 0 && (
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2 mb-1"><Tag size={20} /> Study by topic</h2>
-          <p className="text-[var(--color-muted)] text-sm mb-4">Drill a single topic across all your decks. The number is how many are ready now.</p>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((t) => (
-              <button key={t.tag}
-                onClick={() => router.push(`/study?go=1&mode=due&tag=${encodeURIComponent(t.tag)}&tagName=${encodeURIComponent(t.tag)}`)}
-                className="card-surface card-lift px-3.5 py-2 text-sm font-medium transition flex items-center gap-2">
-                {t.tag}
-                <span className={`text-xs font-bold ${t.ready > 0 ? "text-[var(--color-brand)]" : "text-[var(--color-muted)]"}`}>{t.ready}</span>
-                <span className="text-xs text-[var(--color-muted)]">/ {t.total}</span>
-              </button>
+          <p className="text-[var(--color-muted)] text-sm mb-4">Drill a single subject across all your decks. The number is how many are ready now.</p>
+          <div className="space-y-4">
+            {groupTags(tags).map((group) => (
+              <div key={group.key}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] mb-2">{group.label}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.items.map((t) => (
+                    <button key={t.tag}
+                      onClick={() => router.push(`/study?go=1&mode=due&tag=${encodeURIComponent(t.tag)}&tagName=${encodeURIComponent(t.tag)}`)}
+                      className="card-surface card-lift px-3.5 py-2 text-sm font-medium transition flex items-center gap-2">
+                      {t.tag}
+                      <span className={`text-xs font-bold ${t.ready > 0 ? "text-[var(--color-brand)]" : "text-[var(--color-muted)]"}`}>{t.ready}</span>
+                      <span className="text-xs text-[var(--color-muted)]">/ {t.total}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>

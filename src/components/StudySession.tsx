@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Flag, Eye, Loader2, PartyPopper, ArrowRight, ChevronLeft, ChevronRight, Bug, NotebookPen, X, LogOut, CircleDashed, Timer, Coffee, Play, Pause, Target } from "lucide-react";
+import { Flag, Eye, Loader2, PartyPopper, ArrowRight, ChevronLeft, ChevronRight, Bug, NotebookPen, X, LogOut, CircleDashed, Timer, Coffee, Play, Pause, Target, Trophy } from "lucide-react";
 import { CardQuestion, CardAnswer, type CardData } from "./CardFace";
 import NotebookEditor from "./NotebookEditor";
 import { previewInterval, type Rating } from "@/lib/srs";
@@ -467,8 +467,9 @@ function SessionSummary({ done, counts, remaining = 0, endedEarly = false, timeS
           </div>
         </>
       )}
-      <div className="flex gap-3 justify-center">
+      <div className="flex gap-3 justify-center flex-wrap">
         <Link href="/" className="btn btn-ghost">Back home</Link>
+        <Link href="/achievements" className="btn btn-ghost"><Trophy size={16} /> Trophies</Link>
         <Link href="/insights" className="btn btn-primary">See my insights <ArrowRight size={16} /></Link>
       </div>
     </div>

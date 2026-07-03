@@ -59,7 +59,7 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="text-center text-xs text-[var(--color-muted)] mt-4">
-          Tip: you can change this password later in Settings.
+          Need help getting in? Contact support on <b>0792704886</b>.
         </p>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles } from "lucide-react";
+import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles, Lightbulb } from "lucide-react";
 
 interface Deck { id: string; name: string; }
 
@@ -14,7 +14,16 @@ export default function ImportPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold flex items-center gap-2 mb-1"><Upload size={22} /> Import cards</h1>
-      <p className="text-[var(--color-muted)] mb-5">Add cards you made on claude.ai, or load a free community Anki deck.</p>
+      <p className="text-[var(--color-muted)] mb-4">Add cards you made on claude.ai, or load a free community Anki deck.</p>
+
+      <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
+        <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
+        <span>
+          <b className="text-[var(--color-ink)]">Use any material you like.</b> Turn university slides, textbooks, lecture notes or
+          articles into flashcards as CSV or JSON — and get creative: it doesn&apos;t have to be medicine. Language vocabulary,
+          law, history, coding, exam prep of any kind… if it fits on a flashcard, you can study it here.
+        </span>
+      </div>
 
       <div className="flex gap-2 mb-5">
         <button onClick={() => setTab("text")} className={`btn ${tab === "text" ? "btn-primary" : "btn-ghost"}`}><FileText size={16} /> claude.ai cards</button>
@@ -69,7 +78,7 @@ function TextImport({ decks }: { decks: Deck[] }) {
     <div className="space-y-4">
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Sparkles size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Need cards? Use the ready-made prompt on the <Link href="/settings" className="text-[var(--color-brand)] font-medium">Settings</Link> page on claude.ai, then paste the result here (or upload the .json/.csv file).</span>
+        <span>Need cards? Use the ready-made prompt on the <Link href="/settings" className="text-[var(--color-brand)] font-medium">Settings</Link> page on claude.ai, then paste the result here (or upload the .json/.csv file). Any source works — paste from your own slides, notes or a book, on any subject you want to learn.</span>
       </div>
 
       <div className="card-surface p-5 space-y-3">

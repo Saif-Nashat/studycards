@@ -5,6 +5,7 @@ import {
   Check, Loader2, NotebookPen,
   Bold, Italic, Underline, Strikethrough,
   Heading1, Heading2, List, ListOrdered, Quote, RemoveFormatting,
+  Baseline, Highlighter, Type, AlignLeft, AlignCenter, AlignRight,
 } from "lucide-react";
 
 // A self-contained editor for the app-wide notebook. Loads on mount, autosaves
@@ -25,8 +26,9 @@ function escapeHtml(s: string): string {
 // HTML safe to drop into the editor.
 function toHtml(stored: string): string {
   if (!stored) return "";
-  // Heuristic: real saved notes contain at least one HTML tag we emit.
-  const looksLikeHtml = /<(p|div|br|h[1-3]|ul|ol|li|strong|em|b|i|u|a|blockquote|s)\b/i.test(stored);
+  // Heuristic: real saved notes contain at least one HTML tag we emit. Includes
+  // font/span so notes that only use colour, highlight or size still count as HTML.
+  const looksLikeHtml = /<(p|div|br|h[1-3]|ul|ol|li|strong|em|b|i|u|a|blockquote|s|font|span)\b/i.test(stored);
   if (looksLikeHtml) return stored;
   // Legacy plain text: escape it and keep line breaks.
   return escapeHtml(stored).replace(/\r?\n/g, "<br>");
@@ -36,6 +38,9 @@ type Cmd =
   | { kind: "inline"; command: string }
   | { kind: "block"; tag: string }
   | { kind: "list"; command: "insertUnorderedList" | "insertOrderedList" }
+  | { kind: "align"; command: "justifyLeft" | "justifyCenter" | "justifyRight" }
+  | { kind: "color"; command: "foreColor" | "hiliteColor"; value: string }
+  | { kind: "fontSize"; value: string }
   | { kind: "clear" };
 
 interface Tool {
@@ -46,12 +51,43 @@ interface Tool {
   active?: () => boolean;
 }
 
+// Swatches for the text-colour and highlight pickers. Chosen to read well on
+// both light and dark notebook backgrounds.
+const TEXT_COLORS = ["#0b1a10", "#ef4444", "#f59e0b", "#15803d", "#0ea5e9", "#7c3aed", "#db2777", "#0d9488"];
+const HIGHLIGHT_COLORS = ["#fef08a", "#bbf7d0", "#bfdbfe", "#fbcfe8", "#fed7aa", "#ddd6fe", "#a7f3d0", "#fecaca"];
+const FONT_SIZES = [
+  { label: "Small", value: "2" },
+  { label: "Normal", value: "3" },
+  { label: "Large", value: "5" },
+  { label: "Huge", value: "6" },
+];
+
 export default function NotebookEditor({ compact = false }: { compact?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [, force] = useState(0); // re-render to refresh toolbar active states
+  // Which colour popover (if any) is open: text colour, highlight, or font size.
+  const [openMenu, setOpenMenu] = useState<null | "text" | "highlight" | "size">(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The selection is lost when a toolbar control steals focus, so we stash the
+  // active Range on mousedown and restore it before applying a colour/size.
+  const savedRange = useRef<Range | null>(null);
+
+  function rememberSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRange.current = sel.getRangeAt(0).cloneRange();
+    }
+  }
+  function restoreSelection() {
+    const r = savedRange.current;
+    if (!r) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
 
   // Load once and seed the editor's HTML directly (so the caret never jumps).
   useEffect(() => {
@@ -86,9 +122,21 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
     const el = editorRef.current;
     if (!el) return;
     el.focus();
+    // Colour/size controls live outside the editor, so the selection was lost on
+    // click — put it back before running the command.
+    if (cmd.kind === "color" || cmd.kind === "fontSize") restoreSelection();
     try {
       if (cmd.kind === "inline") document.execCommand(cmd.command);
       else if (cmd.kind === "list") document.execCommand(cmd.command);
+      else if (cmd.kind === "align") document.execCommand(cmd.command);
+      else if (cmd.kind === "color") {
+        // Emit inline style spans (not deprecated <font>) so an explicit text
+        // colour always wins over the highlight-legibility default in CSS.
+        document.execCommand("styleWithCSS", false, "true");
+        document.execCommand(cmd.command, false, cmd.value);
+        document.execCommand("styleWithCSS", false, "false");
+      }
+      else if (cmd.kind === "fontSize") document.execCommand("fontSize", false, cmd.value);
       else if (cmd.kind === "clear") {
         document.execCommand("removeFormat");
         document.execCommand("formatBlock", false, "p");
@@ -100,6 +148,7 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
     } catch {
       /* execCommand can throw in odd selection states — ignore */
     }
+    setOpenMenu(null);
     force((n) => n + 1);
     save();
   }
@@ -116,6 +165,10 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
     "divider",
     { icon: List, title: "Bullet list", cmd: { kind: "list", command: "insertUnorderedList" }, active: () => queryState("insertUnorderedList") },
     { icon: ListOrdered, title: "Numbered list", cmd: { kind: "list", command: "insertOrderedList" }, active: () => queryState("insertOrderedList") },
+    "divider",
+    { icon: AlignLeft, title: "Align left", cmd: { kind: "align", command: "justifyLeft" }, active: () => queryState("justifyLeft") },
+    { icon: AlignCenter, title: "Align centre", cmd: { kind: "align", command: "justifyCenter" }, active: () => queryState("justifyCenter") },
+    { icon: AlignRight, title: "Align right", cmd: { kind: "align", command: "justifyRight" }, active: () => queryState("justifyRight") },
     "divider",
     { icon: RemoveFormatting, title: "Clear formatting", cmd: { kind: "clear" } },
   ];
@@ -151,6 +204,44 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
             </button>
           )
         )}
+
+        <span className="w-px h-5 bg-[var(--color-line)] mx-1" />
+
+        {/* Text colour */}
+        <MenuButton id="text" icon={Baseline} title="Text colour" openMenu={openMenu} setOpenMenu={setOpenMenu} onRemember={rememberSelection}>
+          <div className="grid grid-cols-4 gap-1.5 w-max">
+            {TEXT_COLORS.map((c) => (
+              <button key={c} type="button" title={c} className="w-6 h-6 rounded-md border border-[var(--color-line)]"
+                style={{ background: c }} onClick={() => run({ kind: "color", command: "foreColor", value: c })} />
+            ))}
+          </div>
+        </MenuButton>
+
+        {/* Highlight colour */}
+        <MenuButton id="highlight" icon={Highlighter} title="Highlight colour" openMenu={openMenu} setOpenMenu={setOpenMenu} onRemember={rememberSelection}>
+          <div className="grid grid-cols-4 gap-1.5 w-max">
+            {HIGHLIGHT_COLORS.map((c) => (
+              <button key={c} type="button" title={c} className="w-6 h-6 rounded-md border border-[var(--color-line)]"
+                style={{ background: c }} onClick={() => run({ kind: "color", command: "hiliteColor", value: c })} />
+            ))}
+            <button type="button" title="No highlight" className="w-6 h-6 rounded-md border border-[var(--color-line)] grid place-items-center text-[var(--color-muted)]"
+              onClick={() => run({ kind: "color", command: "hiliteColor", value: "transparent" })}>
+              <RemoveFormatting size={13} />
+            </button>
+          </div>
+        </MenuButton>
+
+        {/* Font size */}
+        <MenuButton id="size" icon={Type} title="Text size" openMenu={openMenu} setOpenMenu={setOpenMenu} onRemember={rememberSelection}>
+          <div className="flex flex-col gap-0.5 w-max">
+            {FONT_SIZES.map((s) => (
+              <button key={s.value} type="button" className="rt-size-item text-left px-2.5 py-1 rounded-md hover:bg-[var(--color-surface-2)] whitespace-nowrap"
+                onClick={() => run({ kind: "fontSize", value: s.value })}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </MenuButton>
       </div>
 
       {loading ? (
@@ -170,6 +261,43 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
         />
       )}
     </div>
+  );
+}
+
+// A colour / size popover button: remembers the selection on mousedown (before
+// focus moves to the toolbar), then opens a small palette. Defined at module
+// scope so it isn't re-created on every render of the editor.
+type MenuId = "text" | "highlight" | "size";
+function MenuButton({
+  id, icon: Icon, title, openMenu, setOpenMenu, onRemember, children,
+}: {
+  id: MenuId;
+  icon: React.ComponentType<{ size?: number }>;
+  title: string;
+  openMenu: MenuId | null;
+  setOpenMenu: React.Dispatch<React.SetStateAction<MenuId | null>>;
+  onRemember: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="relative">
+      <button
+        type="button"
+        title={title}
+        aria-label={title}
+        data-active={openMenu === id ? "true" : "false"}
+        className="rt-tool"
+        onMouseDown={(e) => { e.preventDefault(); onRemember(); }}
+        onClick={() => setOpenMenu((m) => (m === id ? null : id))}
+      >
+        <Icon size={16} />
+      </button>
+      {openMenu === id && (
+        <div className="absolute z-20 top-full left-0 mt-1 p-2 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+          {children}
+        </div>
+      )}
+    </span>
   );
 }
 

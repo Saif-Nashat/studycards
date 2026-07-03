@@ -287,6 +287,9 @@ body {
 .rich-text u { text-decoration: underline; }
 .rich-text a { color: var(--color-brand); text-decoration: underline; }
 .rich-text blockquote { border-left: 3px solid var(--color-line); padding-left: .85rem; color: var(--color-muted); margin: .4rem 0; }
+/* Highlighted text stays legible: force a dark ink on light highlight swatches
+   regardless of the surrounding theme. */
+.rich-text span[style*="background-color"] { color: #111827; border-radius: .15rem; padding: 0 .1em; }
 .rich-text:empty::before { content: attr(data-placeholder); color: var(--color-muted); pointer-events: none; }
 /* Toolbar buttons */
 .rt-tool {

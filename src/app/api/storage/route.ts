@@ -8,11 +8,33 @@ export const runtime = "nodejs";
 // yours differs (or if you upgrade).
 const LIMIT_MB = Number(process.env.DB_STORAGE_LIMIT_MB) || 500;
 
+// Run a DB operation, retrying if the (free) Neon database is still waking from
+// its idle auto-suspend. A cold compute can refuse the first connection(s) for
+// several seconds before it's ready, so we retry with a short backoff instead of
+// failing the whole request. Total patience ≈ 12s.
+async function withWakeRetry<T>(fn: () => Promise<T>): Promise<T> {
+  const delays = [500, 1000, 2000, 3000, 4000];
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (attempt === delays.length) break;
+      await new Promise((r) => setTimeout(r, delays[attempt]));
+    }
+  }
+  throw lastErr;
+}
+
 export async function GET() {
   try {
-    // The authoritative "how full is the database" number.
-    const sizeRows = await prisma.$queryRawUnsafe<{ bytes: bigint }[]>(
-      `SELECT pg_database_size(current_database())::bigint AS bytes`
+    // The authoritative "how full is the database" number. This is the first DB
+    // touch, so it carries the wake-from-idle retry.
+    const sizeRows = await withWakeRetry(() =>
+      prisma.$queryRawUnsafe<{ bytes: bigint }[]>(
+        `SELECT pg_database_size(current_database())::bigint AS bytes`
+      )
     );
     const usedBytes = Number(sizeRows[0]?.bytes ?? 0);
     const limitBytes = LIMIT_MB * 1024 * 1024;

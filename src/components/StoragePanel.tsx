@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, Loader2, Trash2, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, Database, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { formatBytes, type StorageUsage } from "@/lib/format";
+
+// How many decks the "Decks by size" list shows before collapsing behind a
+// "Show all" toggle — keeps the Settings page short for deck-hoarders.
+const DECKS_COLLAPSED = 6;
 
 // A detailed storage view for the Settings page: how full the database is, and
 // which decks take the most room, with a one-click delete to free space.
@@ -10,11 +14,20 @@ export default function StoragePanel() {
   const [usage, setUsage] = useState<StorageUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showAllDecks, setShowAllDecks] = useState(false);
 
+  // Fetch storage usage, retrying a few times before giving up. The free Neon
+  // database auto-suspends when idle, so the first request after launching the
+  // app has to wake it — that can be slow or fail once. Retrying with a short
+  // backoff lets the panel recover on its own instead of showing an error.
   async function load() {
     setLoading(true);
-    const d = await fetch("/api/storage").then((r) => r.json()).catch(() => null);
-    if (d && !d.error) setUsage(d);
+    const delays = [0, 1500, 3000]; // immediate, then wait for Neon to wake
+    for (let attempt = 0; attempt < delays.length; attempt++) {
+      if (delays[attempt]) await new Promise((r) => setTimeout(r, delays[attempt]));
+      const d = await fetch("/api/storage").then((r) => r.json()).catch(() => null);
+      if (d && !d.error) { setUsage(d); setLoading(false); return; }
+    }
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
@@ -42,9 +55,16 @@ export default function StoragePanel() {
       </p>
 
       {loading && !usage ? (
-        <div className="grid place-items-center py-8 text-[var(--color-muted)]"><Loader2 className="animate-spin" /></div>
+        <div className="grid place-items-center gap-2 py-8 text-[var(--color-muted)] text-sm">
+          <Loader2 className="animate-spin" /> Waking up the database…
+        </div>
       ) : !usage ? (
-        <p className="text-sm text-[var(--color-again)]">Couldn&apos;t read storage usage right now.</p>
+        <div className="text-sm">
+          <p className="text-[var(--color-again)] mb-2">Couldn&apos;t read storage usage right now — the database may still be waking up.</p>
+          <button onClick={load} disabled={loading} className="btn btn-ghost text-sm">
+            {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Try again
+          </button>
+        </div>
       ) : (
         <>
           <div className="flex items-end justify-between mb-1.5">
@@ -69,24 +89,37 @@ export default function StoragePanel() {
           {usage.decks.length === 0 ? (
             <p className="text-sm text-[var(--color-muted)]">No decks yet.</p>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">Decks by size</p>
-              {usage.decks.map((d) => (
-                <div key={d.id} className="flex items-center gap-3 border border-[var(--color-line)] rounded-xl px-3.5 py-2.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{d.name}</p>
-                    <p className="text-xs text-[var(--color-muted)]">{d.cards} card{d.cards === 1 ? "" : "s"} · ~{formatBytes(d.bytes)}</p>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] mb-2">Decks by size</p>
+              {/* Compact two-column grid so long deck collections don't need much scrolling. */}
+              <div className="grid sm:grid-cols-2 gap-1.5">
+                {(showAllDecks ? usage.decks : usage.decks.slice(0, DECKS_COLLAPSED)).map((d) => (
+                  <div key={d.id} className="flex items-center gap-2 border border-[var(--color-line)] rounded-lg px-2.5 py-1.5">
+                    <div className="flex-1 min-w-0 leading-tight">
+                      <p className="font-medium text-sm truncate" title={d.name}>{d.name}</p>
+                      <p className="text-[11px] text-[var(--color-muted)]">{d.cards} card{d.cards === 1 ? "" : "s"} · ~{formatBytes(d.bytes)}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteDeck(d.id, d.name)}
+                      disabled={busyId === d.id}
+                      className="p-1.5 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-again)] hover:bg-[var(--color-danger-bg)] transition"
+                      title="Delete this deck to free space"
+                    >
+                      {busyId === d.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => deleteDeck(d.id, d.name)}
-                    disabled={busyId === d.id}
-                    className="btn btn-ghost py-1.5 px-2.5 text-sm text-[var(--color-again)] hover:bg-[var(--color-danger-bg)]"
-                    title="Delete this deck to free space"
-                  >
-                    {busyId === d.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
+              {usage.decks.length > DECKS_COLLAPSED && (
+                <button
+                  onClick={() => setShowAllDecks((v) => !v)}
+                  className="btn btn-ghost w-full mt-2 py-1.5 text-sm text-[var(--color-muted)]"
+                >
+                  {showAllDecks
+                    ? <><ChevronUp size={15} /> Show fewer</>
+                    : <><ChevronDown size={15} /> Show all {usage.decks.length} decks</>}
+                </button>
+              )}
             </div>
           )}
           <p className="text-[11px] text-[var(--color-muted)] mt-4">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, BookOpen, Flame, Layers, Upload, Settings, LogOut, GraduationCap, BarChart3, NotebookPen } from "lucide-react";
+import { Home, BookOpen, Flame, Layers, Upload, Settings, LogOut, GraduationCap, BarChart3, NotebookPen, Trophy } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
 const LINKS = [
@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/study", label: "Study", icon: BookOpen },
   { href: "/hard", label: "Hard cards", icon: Flame },
   { href: "/insights", label: "Insights", icon: BarChart3 },
+  { href: "/achievements", label: "Trophies", icon: Trophy },
   { href: "/notebook", label: "Notebook", icon: NotebookPen },
   { href: "/browse", label: "Browse", icon: Layers },
   { href: "/import", label: "Import", icon: Upload },
@@ -31,15 +32,17 @@ export default function NavBar() {
 
   return (
     <header className="sticky top-0 z-30 backdrop-blur bg-[var(--color-nav)] border-b border-[var(--color-line)]">
-      <div className="mx-auto max-w-6xl px-4 h-16 flex items-center gap-2">
-        <Link href="/" className="flex items-center gap-2 mr-2 font-bold text-lg">
+      {/* A roomy header: the row wraps onto a second line when space runs out,
+          so every section stays visible — no horizontal slider. */}
+      <div className="mx-auto max-w-[88rem] px-4 min-h-16 py-2 flex items-center gap-2 flex-wrap">
+        <Link href="/" className="flex items-center gap-2 mr-3 font-bold text-lg">
           <span className="logo-badge grid place-items-center w-9 h-9 rounded-xl text-white">
             <GraduationCap size={20} />
           </span>
           <span className="hidden sm:inline">StudyCards</span>
         </Link>
 
-        <nav className="flex items-center gap-1 overflow-x-auto">
+        <nav className="flex items-center gap-1 flex-wrap order-last w-full lg:order-none lg:w-auto lg:flex-1">
           {LINKS.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
@@ -58,7 +61,7 @@ export default function NavBar() {
                   />
                 )}
                 <Icon size={16} className="relative z-10" />
-                <span className="hidden md:inline relative z-10">{label}</span>
+                <span className="relative z-10">{label}</span>
               </Link>
             );
           })}

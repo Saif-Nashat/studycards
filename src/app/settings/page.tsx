@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Copy, Check, KeyRound, Sparkles, Package } from "lucide-react";
+import { Settings, Copy, Check, LifeBuoy, Sparkles, Package, Phone, GraduationCap, PlayCircle } from "lucide-react";
 import { CLAUDE_PROMPT } from "@/lib/prompt";
 import StoragePanel from "@/components/StoragePanel";
+import ResetProgressPanel from "@/components/ResetProgressPanel";
+import { OPEN_TUTORIAL_EVENT } from "@/components/Tutorial";
 
 export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
@@ -17,6 +19,17 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold flex items-center gap-2"><Settings size={22} /> Settings &amp; help</h1>
+
+      {/* Tutorial */}
+      <section className="card-surface p-6">
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><GraduationCap size={18} className="text-[var(--color-brand)]" /> How to use StudyCards</h2>
+        <p className="text-[var(--color-muted)] text-sm mb-4">
+          New here, or want a refresher? Replay the guided tour of every feature — from studying and building tests to importing your own material.
+        </p>
+        <button onClick={() => window.dispatchEvent(new Event(OPEN_TUTORIAL_EVENT))} className="btn btn-primary text-sm">
+          <PlayCircle size={16} /> Show me the tutorial
+        </button>
+      </section>
 
       {/* Storage */}
       <StoragePanel />
@@ -45,15 +58,27 @@ export default function SettingsPage() {
         </p>
       </section>
 
-      {/* Password */}
+      {/* Reset progress */}
+      <ResetProgressPanel />
+
+      {/* Customer support */}
       <section className="card-surface p-6">
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><KeyRound size={18} className="text-[var(--color-brand)]" /> Change your password</h2>
-        <p className="text-[var(--color-muted)] text-sm">
-          Your password lives in a file called <code>.env</code> (when running on your laptop) or in your hosting settings (when online).
-          To change it on your laptop, open <code>.env</code> in the <code>studycards</code> folder and edit the line
-          <code className="block bg-[var(--color-surface-2)] rounded px-2 py-1 my-1">APP_PASSWORD=&quot;your-new-password&quot;</code>
-          then restart the app. The deployment guide explains how to set it online.
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><LifeBuoy size={18} className="text-[var(--color-brand)]" /> Customer support &amp; contact</h2>
+        <p className="text-[var(--color-muted)] text-sm mb-4">
+          Need help, hit a problem, or have a question or suggestion? Get in touch — we&apos;re happy to help you get the most out of your studying.
         </p>
+        <a
+          href="tel:0792704886"
+          className="inline-flex items-center gap-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-tint)] px-4 py-3 font-semibold hover:border-[var(--color-brand)] transition"
+        >
+          <span className="grid place-items-center w-10 h-10 rounded-xl bg-[var(--color-chip-bg)] text-[var(--color-brand)]">
+            <Phone size={18} />
+          </span>
+          <span>
+            <span className="block text-xs font-normal text-[var(--color-muted)]">Call or text us</span>
+            <span className="text-lg tracking-wide">0792704886</span>
+          </span>
+        </a>
       </section>
     </div>
   );
