@@ -65,12 +65,13 @@ export default function AchievementsPage() {
   return (
     <div className="space-y-7">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2"><Trophy size={24} className="text-[var(--color-gold)]" /> Trophies</h1>
-        <p className="text-[var(--color-muted)]">Earn rewards as you study. Keep your streak alive and unlock them all.</p>
+        <span className="eyebrow mb-2.5">Milestones</span>
+        <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Trophy size={26} strokeWidth={1.75} className="text-[var(--color-gold)]" /> Trophies</h1>
+        <p className="text-[var(--color-muted)] mt-1">Earn rewards as you study. Keep your streak alive and unlock them all.</p>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+      <div id="tour-trophies" className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="card-surface p-5">
           <div className="flex items-center justify-between">
             <span className="text-sm text-[var(--color-muted)]">Trophies earned</span>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Flag, Eye, Loader2, PartyPopper, ArrowRight, ChevronLeft, ChevronRight, Bug, NotebookPen, X, LogOut, CircleDashed, Timer, Coffee, Play, Pause, Target, Trophy } from "lucide-react";
 import { CardQuestion, CardAnswer, type CardData } from "./CardFace";
+import NumberTicker from "./NumberTicker";
 import NotebookEditor from "./NotebookEditor";
 import { previewInterval, type Rating } from "@/lib/srs";
 import { advancePomo, formatClock, initialPomoState, isPomodoro, pomoConfig, skipBreak, type PomoState, type TimerMode } from "@/lib/timer";
@@ -191,9 +192,9 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-3">
-        <h1 className="text-lg font-semibold">{title}</h1>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-y-2">
+        <h1 className="text-lg font-semibold min-w-0 truncate max-w-full">{title}</h1>
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={endSession} className="btn btn-ghost py-1.5 px-2.5 text-[var(--color-again)] hover:bg-[var(--color-danger-bg)]" title="End this session now — answered cards are saved, the rest stay unsolved">
             <LogOut size={16} /> <span className="hidden sm:inline text-sm">End session</span>
           </button>
@@ -437,7 +438,7 @@ function SessionSummary({ done, counts, remaining = 0, endedEarly = false, timeS
       >
         <PartyPopper size={30} />
       </motion.div>
-      <h2 className="text-2xl font-bold mb-1">{endedEarly ? "Session ended" : "Session complete!"}</h2>
+      <h2 className="font-display text-3xl mb-1 tracking-tight">{endedEarly ? "Session ended" : "Session complete!"}</h2>
       {total === 0 ? (
         <p className="text-[var(--color-muted)] mb-6">{endedEarly ? "You ended before answering any cards — nothing was counted, and all cards are still unsolved." : "There were no cards to review right now."}</p>
       ) : (
@@ -456,7 +457,7 @@ function SessionSummary({ done, counts, remaining = 0, endedEarly = false, timeS
             </p>
           )}
           {!(endedEarly && remaining > 0) && <div className="mb-6" />}
-          <div className="mb-6"><div className="text-5xl font-bold text-[var(--color-good)]">{accuracy}%</div><div className="text-sm text-[var(--color-muted)]">answered Good or Easy</div></div>
+          <div className="mb-6"><div className="text-5xl font-bold text-[var(--color-good)] tracking-tight"><NumberTicker value={`${accuracy}%`} /></div><div className="text-sm text-[var(--color-muted)]">answered Good or Easy</div></div>
           <div className="space-y-3 text-left mb-7">
             {rows.map((r) => (
               <div key={r.label}>

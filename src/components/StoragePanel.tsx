@@ -46,12 +46,13 @@ export default function StoragePanel() {
   return (
     <section id="storage" className="card-surface p-6 scroll-mt-24">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-lg font-bold flex items-center gap-2"><Database size={18} className="text-[var(--color-brand)]" /> Database storage</h2>
+        <h2 className="text-lg font-bold flex items-center gap-2"><Database size={18} className="text-[var(--color-brand)]" /> Your storage share</h2>
         <button onClick={load} className="btn btn-ghost py-1.5 px-2.5 text-sm" title="Refresh"><RefreshCw size={14} /></button>
       </div>
       <p className="text-[var(--color-muted)] text-sm mb-4">
-        Your cards, images and progress live in a free online database (Neon, ~{usage?.limitMb ?? 500} MB).
-        Images from imported decks use the most space. If it fills up, delete a deck you no longer need.
+        The database is shared between accounts, and every account owns a fixed slice —
+        yours is <b className="text-[var(--color-ink)]">{usage?.limitMb ?? 75} MB</b>, so nobody can eat into your space.
+        Images from imported decks use the most room. If your share fills up, delete a deck you no longer need.
       </p>
 
       {loading && !usage ? (
@@ -67,6 +68,14 @@ export default function StoragePanel() {
         </div>
       ) : (
         <>
+          {usage.username && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="chip">Signed in as {usage.displayName || usage.username}</span>
+              <span className="chip" style={usage.role === "trial" ? { background: "color-mix(in srgb, var(--color-gold) 18%, transparent)", color: "var(--color-gold)" } : undefined}>
+                {usage.role === "trial" ? "Trial account · 50 MB" : "Member account · 75 MB"}
+              </span>
+            </div>
+          )}
           <div className="flex items-end justify-between mb-1.5">
             <span className="text-sm font-medium">
               {formatBytes(usage.usedBytes)} <span className="text-[var(--color-muted)]">of {formatBytes(usage.limitBytes)} used</span>
@@ -80,8 +89,8 @@ export default function StoragePanel() {
           {usage.imageBytes != null && usage.imageBytes > 0 && (
             <div className="flex items-center gap-3 border border-[var(--color-line)] rounded-xl px-3.5 py-2.5 mb-3 bg-[var(--color-tint)]">
               <div className="flex-1 min-w-0">
-                <p className="font-medium">Shared image library</p>
-                <p className="text-xs text-[var(--color-muted)]">{usage.imageCount} unique images · ~{formatBytes(usage.imageBytes)} (de-duplicated across all decks)</p>
+                <p className="font-medium">Your image library</p>
+                <p className="text-xs text-[var(--color-muted)]">{usage.imageCount} unique images · ~{formatBytes(usage.imageBytes)} (each picture stored once across your decks)</p>
               </div>
             </div>
           )}
@@ -123,7 +132,7 @@ export default function StoragePanel() {
             </div>
           )}
           <p className="text-[11px] text-[var(--color-muted)] mt-4">
-            This is an estimate of your data. The exact billed figure is in your Neon dashboard.
+            This measures the content you store (cards + images). Six accounts have 75 MB each and the trial has 50 MB — together they fill the 500 MB database.
           </p>
         </>
       )}

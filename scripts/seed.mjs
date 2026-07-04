@@ -1,5 +1,7 @@
-// Seeds a small starter deck so the app has content on first run.
-// Safe to re-run: it only adds the starter deck if it doesn't already exist.
+// Seeds a small starter deck so accounts have content on first login.
+// Safe to re-run: each user only gets the starter deck if they don't already
+// have a deck with that name. (Run scripts/setup-users.mjs first to create
+// the accounts themselves.)
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
@@ -21,14 +23,25 @@ const cards = [
 ];
 
 async function main() {
-  const existing = await prisma.deck.findUnique({ where: { name: DECK } });
-  if (existing) {
-    console.log("Starter deck already exists — skipping.");
+  const users = await prisma.user.findMany({ select: { id: true, username: true } });
+  if (users.length === 0) {
+    console.log("No users yet — run scripts/setup-users.mjs first.");
     return;
   }
-  const deck = await prisma.deck.create({ data: { name: DECK, description: "A few high-yield cards to get you started. Verify facts as you study." } });
-  await prisma.card.createMany({ data: cards.map((c) => ({ ...c, back: c.type === "list" ? JSON.stringify(c.back) : c.back, deckId: deck.id })) });
-  console.log(`Seeded "${DECK}" with ${cards.length} cards.`);
+  for (const user of users) {
+    const existing = await prisma.deck.findUnique({ where: { userId_name: { userId: user.id, name: DECK } } });
+    if (existing) {
+      console.log(`${user.username}: starter deck already exists — skipping.`);
+      continue;
+    }
+    const deck = await prisma.deck.create({
+      data: { name: DECK, userId: user.id, description: "A few high-yield cards to get you started. Verify facts as you study." },
+    });
+    await prisma.card.createMany({
+      data: cards.map((c) => ({ ...c, back: c.type === "list" ? JSON.stringify(c.back) : c.back, deckId: deck.id, userId: user.id })),
+    });
+    console.log(`${user.username}: seeded "${DECK}" with ${cards.length} cards.`);
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());

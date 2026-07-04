@@ -15,5 +15,8 @@ export interface StorageUsage {
   level: "ok" | "warn" | "critical";
   imageCount?: number;
   imageBytes?: number;
+  username?: string;
+  displayName?: string;
+  role?: string; // "member" | "trial"
   decks: { id: string; name: string; cards: number; bytes: number }[];
 }

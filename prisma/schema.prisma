@@ -10,18 +10,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// An account. Every deck, card, review, image and notebook belongs to exactly
+// one user, so people share the database without seeing (or eating into)
+// each other's space. `storageLimitMb` is each user's slice of the shared
+// 500 MB database: 6 full members × 75 MB + 1 trial × 50 MB = 500 MB.
+model User {
+  id             String   @id @default(cuid())
+  username       String   @unique
+  displayName    String   @default("")
+  passwordHash   String
+  role           String   @default("member") // "member" | "trial"
+  storageLimitMb Int      @default(75)
+  createdAt      DateTime @default(now())
+
+  decks     Deck[]
+  cards     Card[]
+  reviews   Review[]
+  images    Image[]
+  notebooks Notebook[]
+}
+
 model Deck {
   id          String   @id @default(cuid())
-  name        String   @unique
+  name        String
   description String   @default("")
   createdAt   DateTime @default(now())
   cards       Card[]
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // Deck names only need to be unique within one account.
+  @@unique([userId, name])
+  @@index([userId])
 }
 
 model Card {
   id        String   @id @default(cuid())
   deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
   deckId    String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 
   // Content
   type      String   @default("basic") // "basic" | "cloze" | "list"
@@ -54,24 +84,37 @@ model Card {
   reviews   Review[]
 
   @@index([deckId])
+  @@index([userId])
   @@index([due])
   @@index([flagged])
 }
 
+// One free-text notebook per user.
 model Notebook {
-  id        String   @id @default("main")
+  id        String   @id @default(cuid())
   content   String   @default("")
   updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
 }
 
 // Deduplicated image store. Imported decks reuse the same picture across many
 // cards; instead of embedding it in every card row, we store each unique image
 // once (keyed by a hash of its bytes) and cards reference it as "img:<id>".
+// Scoped per user so each account's pictures count against its own quota.
 model Image {
-  id        String   @id          // content hash (sha256, truncated)
+  id        String                // content hash (sha256, truncated)
   mime      String   @default("image/jpeg")
   data      String                // base64-encoded image bytes (no data: prefix)
   createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // The same picture may exist under two accounts (each pays for their copy);
+  // within one account it's still stored exactly once.
+  @@id([userId, id])
 }
 
 model Review {
@@ -82,5 +125,9 @@ model Review {
   intervalDays Float
   reviewedAt   DateTime @default(now())
 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
   @@index([cardId])
+  @@index([userId])
 }

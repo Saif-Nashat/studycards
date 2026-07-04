@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/auth";
 import type { AchStats } from "@/lib/achievements";
 
 // Format a date as a local YYYY-MM-DD key.
@@ -10,16 +11,20 @@ function dayKey(d: Date): string {
 // Compute the stats snapshot the trophy system is derived from. The client turns
 // this into unlocked/progress via src/lib/achievements.ts.
 export async function GET() {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+  const uid = user.id;
+
   const now = new Date();
   const startOfToday = new Date(now); startOfToday.setHours(0, 0, 0, 0);
 
   const [totalReviews, reviewedToday, byRating, reviewDays, cards, totalDecks] = await Promise.all([
-    prisma.review.count(),
-    prisma.review.count({ where: { reviewedAt: { gte: startOfToday } } }),
-    prisma.review.groupBy({ by: ["rating"], _count: { rating: true } }),
-    prisma.review.findMany({ select: { reviewedAt: true } }),
-    prisma.card.findMany({ select: { state: true, intervalDays: true } }),
-    prisma.deck.count(),
+    prisma.review.count({ where: { userId: uid } }),
+    prisma.review.count({ where: { userId: uid, reviewedAt: { gte: startOfToday } } }),
+    prisma.review.groupBy({ by: ["rating"], where: { userId: uid }, _count: { rating: true } }),
+    prisma.review.findMany({ where: { userId: uid }, select: { reviewedAt: true } }),
+    prisma.card.findMany({ where: { userId: uid }, select: { state: true, intervalDays: true } }),
+    prisma.deck.count({ where: { userId: uid } }),
   ]);
 
   // Accuracy from the rating distribution.

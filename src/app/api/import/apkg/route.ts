@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/auth";
+import { quotaError } from "@/lib/storage";
 import { bucketsFromAnkiTags } from "@/lib/tags";
 import JSZip from "jszip";
 import initSqlJs from "sql.js";
@@ -94,12 +96,14 @@ async function getSharp() {
 // re-encode so a single deck doesn't balloon the database. Animated GIFs and
 // vector SVGs are left untouched (resizing would break them).
 //
-// Tuned fairly aggressively (1000px / quality 55) to keep the free database
-// small: this roughly halves the stored size vs. full quality while text and
-// slides stay readable at the size cards are shown. Bump these up if you ever
-// move images out to dedicated file storage and stop worrying about DB size.
+// Encoded as WebP: measured on a real UWorld deck it stores ~30% smaller than
+// the JPEG pipeline it replaced at the same (or better) visual quality, and
+// every current browser (incl. iPad Safari) displays it. Tuned so text and
+// slides stay readable at the size cards are shown — bump these up if you
+// ever move images out to dedicated file storage and stop worrying about
+// database size.
 const IMG_MAX_DIM = 950;
-const IMG_QUALITY = 52;
+const IMG_QUALITY = 45; // WebP quality (≈ JPEG q60+ visually)
 async function shrinkImage(bytes: Uint8Array, filename: string): Promise<{ data: Uint8Array; mime: string }> {
   const ext = filename.toLowerCase().split(".").pop() || "";
   if (ext === "svg" || ext === "gif") return { data: bytes, mime: mimeFor(filename) };
@@ -109,10 +113,10 @@ async function shrinkImage(bytes: Uint8Array, filename: string): Promise<{ data:
     const out = await sharp(Buffer.from(bytes))
       .rotate() // honour EXIF orientation before we drop the metadata
       .resize({ width: IMG_MAX_DIM, height: IMG_MAX_DIM, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: IMG_QUALITY })
+      .webp({ quality: IMG_QUALITY })
       .toBuffer();
     // Only keep the re-encoded version if it actually came out smaller.
-    if (out.length < bytes.byteLength) return { data: out, mime: "image/jpeg" };
+    if (out.length < bytes.byteLength) return { data: out, mime: "image/webp" };
   } catch {
     /* unreadable/odd image — fall through and embed the original */
   }
@@ -125,6 +129,9 @@ function jsonError(message: string, status = 400) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getUser();
+    if (!user) return jsonError("Not logged in", 401);
+
     const form = await req.formData().catch(() => null);
     const file = form?.get("file");
     const deckName = (form?.get("deckName") as string) || "";
@@ -156,6 +163,11 @@ export async function POST(req: Request) {
     }
 
     const dbBytes = await dbEntry.async("uint8array");
+    // Zip-bomb guard: a tiny upload can decompress into a giant collection and
+    // exhaust server memory. Real decks' card databases are a few MB.
+    if (dbBytes.byteLength > 300 * 1024 * 1024) {
+      return jsonError("This deck's card database is unreasonably large (over 300MB decompressed).");
+    }
 
     const wasmPath = path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm");
     const wasmBuf = fs.readFileSync(wasmPath);
@@ -245,13 +257,18 @@ export async function POST(req: Request) {
     }
 
     const name = (deckName || (file as File).name.replace(/\.apkg$/i, "") || "Imported deck").trim();
-    const deck = await prisma.deck.upsert({ where: { name }, update: {}, create: { name } });
+    const deck = await prisma.deck.upsert({
+      where: { userId_name: { userId: user.id, name } },
+      update: {},
+      create: { name, userId: user.id },
+    });
 
     const existing = await prisma.card.findMany({ where: { deckId: deck.id }, select: { front: true } });
     const seen = new Set(existing.map((c) => c.front.trim()));
 
     const toCreate: {
       deckId: string;
+      userId: string;
       type: string;
       front: string;
       back: string;
@@ -291,6 +308,7 @@ export async function POST(req: Request) {
 
       toCreate.push({
         deckId: deck.id,
+        userId: user.id,
         type: isCloze ? "cloze" : "basic",
         front,
         back,
@@ -302,9 +320,30 @@ export async function POST(req: Request) {
       });
     }
 
-    // Store the unique images first (skipping any this deck shares with one
-    // already imported), so the cards' "img:<id>" references resolve.
-    const imageRows = [...uniqueImages.entries()].map(([id, v]) => ({ id, mime: v.mime, data: v.data }));
+    // Everything this import would add must fit in the user's storage share.
+    // Count the card text/refs plus only the images they don't already have
+    // (a picture shared with one of their earlier decks costs nothing new).
+    const already = new Set(
+      (
+        await prisma.image.findMany({
+          where: { userId: user.id, id: { in: [...uniqueImages.keys()] } },
+          select: { id: true },
+        })
+      ).map((r) => r.id)
+    );
+    let incomingBytes = 0;
+    for (const [id, v] of uniqueImages) if (!already.has(id)) incomingBytes += v.data.length;
+    for (const c of toCreate) {
+      incomingBytes +=
+        c.front.length + c.back.length + c.extra.length + c.tags.length +
+        c.source.length + c.imageFront.length + c.imageBack.length;
+    }
+    const quotaMsg = await quotaError(user.id, incomingBytes);
+    if (quotaMsg) return jsonError(quotaMsg, 413);
+
+    // Store the unique images first (skipping any this user already has from
+    // an earlier deck), so the cards' "img:<id>" references resolve.
+    const imageRows = [...uniqueImages.entries()].map(([id, v]) => ({ id, userId: user.id, mime: v.mime, data: v.data }));
     const IMG_BATCH = 25;
     for (let i = 0; i < imageRows.length; i += IMG_BATCH) {
       await prisma.image.createMany({ data: imageRows.slice(i, i + IMG_BATCH), skipDuplicates: true });

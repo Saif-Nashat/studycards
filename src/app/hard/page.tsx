@@ -44,12 +44,14 @@ export default function HardPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-1">
-        <span className="grid place-items-center w-10 h-10 rounded-xl bg-orange-100 text-orange-500"><Flame size={22} /></span>
-        <h1 className="text-2xl font-bold">Hard / Review-later</h1>
+      <span className="eyebrow mb-2.5">Focus queue</span>
+      <div id="tour-hard" className="flex items-center gap-3 mb-1">
+        <span className="grid place-items-center w-11 h-11 rounded-xl text-[var(--color-hard)]" style={{ background: "color-mix(in srgb, var(--color-hard) 13%, transparent)", boxShadow: "inset 0 1px 0 var(--card-highlight), inset 0 0 0 1px color-mix(in srgb, var(--color-hard) 20%, transparent)" }}><Flame size={22} strokeWidth={1.75} /></span>
+        <h1 className="font-display text-3xl md:text-4xl tracking-tight">Hard / Review-later</h1>
       </div>
       <p className="text-[var(--color-muted)] mb-6">
-        Cards you rated <b>Again</b> or <b>Hard</b>, plus any you flagged <Flag size={13} className="inline" /> during study.
+        Cards you rated <b>Hard</b>, plus any you flagged <Flag size={13} className="inline" /> during study.
+        (Cards rated &quot;Again&quot; aren&apos;t listed — they come straight back in your normal queue.)
       </p>
 
       {loading ? (

@@ -91,8 +91,11 @@ function BrowseInner() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold flex items-center gap-2"><Layers size={22} /> Browse cards</h1>
+      <div id="tour-browse" className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <span className="eyebrow mb-2.5">Collection</span>
+          <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Layers size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Browse cards</h1>
+        </div>
         <button onClick={() => setEditing({ ...EMPTY, deckId: deckFilter || decks[0]?.id })} className="btn btn-primary">
           <Plus size={18} /> Add card
         </button>
@@ -133,7 +136,7 @@ function BrowseInner() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {c.type === "basic" && <button onClick={() => addReverse(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]" title="Create reverse card (swap Q & A)"><Repeat size={16} /></button>}
+                  {c.type === "basic" && <button onClick={() => addReverse(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]" title="Create a reverse copy: a new card with question & answer swapped, so you can recall the fact in both directions"><Repeat size={16} /></button>}
                   <button onClick={() => toggleFlag(c)} className={`p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] ${c.flagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)]"}`} title="Flag"><Flag size={16} /></button>
                   <button onClick={() => setEditing(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]" title="Edit"><Pencil size={16} /></button>
                   <button onClick={() => remove(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-danger-bg)] text-[var(--color-muted)] hover:text-[var(--color-again)]" title="Delete"><Trash2 size={16} /></button>
@@ -256,10 +259,17 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
           </div>
 
           {isNew && form.type === "basic" && (
-            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-              <input type="checkbox" checked={alsoReverse} onChange={(e) => setAlsoReverse(e.target.checked)} />
-              <Repeat size={15} /> Also create the reverse card (answer → question)
-            </label>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <input type="checkbox" checked={alsoReverse} onChange={(e) => setAlsoReverse(e.target.checked)} />
+                <Repeat size={15} /> Also create the reverse card (answer → question)
+              </label>
+              <p className="text-xs text-[var(--color-muted)] mt-1 ml-6">
+                Makes a second card with the question and answer swapped, so you learn the fact in <b>both
+                directions</b>. Example: &quot;Capital of France?&nbsp;→&nbsp;Paris&quot; also becomes
+                &quot;Paris is the capital of…?&nbsp;→&nbsp;France&quot;. Both cards are scheduled independently.
+              </p>
+            </div>
           )}
         </div>
         <div className="flex justify-end gap-2 mt-5">

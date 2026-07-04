@@ -13,8 +13,9 @@ export default function ImportPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold flex items-center gap-2 mb-1"><Upload size={22} /> Import cards</h1>
-      <p className="text-[var(--color-muted)] mb-4">Add cards you made on claude.ai, or load a free community Anki deck.</p>
+      <span className="eyebrow mb-2.5">Library intake</span>
+      <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><Upload size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Import cards</h1>
+      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made on claude.ai, or load a free community Anki deck.</p>
 
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
         <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
@@ -25,7 +26,7 @@ export default function ImportPage() {
         </span>
       </div>
 
-      <div className="flex gap-2 mb-5">
+      <div id="tour-import" className="flex gap-2 mb-5">
         <button onClick={() => setTab("text")} className={`btn ${tab === "text" ? "btn-primary" : "btn-ghost"}`}><FileText size={16} /> claude.ai cards</button>
         <button onClick={() => setTab("apkg")} className={`btn ${tab === "apkg" ? "btn-primary" : "btn-ghost"}`}><Package size={16} /> Anki deck (.apkg)</button>
       </div>

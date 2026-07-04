@@ -19,12 +19,12 @@ No coding needed. Just follow the steps.
 
 ## 🔑 2. Log in
 
-- The password is **`changeme`** to begin with.
-- To change it: open the file `.env` inside the `studycards` folder (right-click → Open with → Notepad), and change this line:
-  ```
-  APP_PASSWORD="changeme"
-  ```
-  to your own password, save, and restart the app.
+- The app has **7 separate accounts** (each with its own decks, progress,
+  notebook and storage share). Sign in with your **username + password** —
+  the full list lives in `USERS-AND-PASSWORDS.md` one folder up (kept out of
+  GitHub on purpose).
+- To change a password: edit `scripts/setup-users.mjs` and run
+  `npm run users -- --reset-passwords` inside the `studycards` folder.
 
 ---
 

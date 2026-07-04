@@ -13,12 +13,13 @@ function refsIn(...fields: string[]): string[] {
   return ids;
 }
 
-// Remove images from the shared store that no card references anymore (e.g.
-// after a deck is deleted). Returns how many were freed. Safe to run anytime.
-export async function gcOrphanImages(): Promise<number> {
+// Remove images from a user's image library that none of their cards reference
+// anymore (e.g. after a deck is deleted). Returns how many were freed.
+// Scoped per user: one user's cleanup can never touch another's pictures.
+export async function gcOrphanImages(userId: string): Promise<number> {
   const [cards, all] = await Promise.all([
-    prisma.card.findMany({ select: { imageFront: true, imageBack: true } }),
-    prisma.image.findMany({ select: { id: true } }),
+    prisma.card.findMany({ where: { userId }, select: { imageFront: true, imageBack: true } }),
+    prisma.image.findMany({ where: { userId }, select: { id: true } }),
   ]);
 
   const used = new Set<string>();
@@ -28,7 +29,7 @@ export async function gcOrphanImages(): Promise<number> {
   let removed = 0;
   const BATCH = 500;
   for (let i = 0; i < orphans.length; i += BATCH) {
-    const r = await prisma.image.deleteMany({ where: { id: { in: orphans.slice(i, i + BATCH) } } });
+    const r = await prisma.image.deleteMany({ where: { userId, id: { in: orphans.slice(i, i + BATCH) } } });
     removed += r.count;
   }
   return removed;

@@ -38,7 +38,10 @@ function normalizeCard(raw: Record<string, unknown>): ParsedCard | null {
 }
 
 export function parseImport(input: string): ParseResult {
-  const text = input.trim();
+  // Tolerate a pasted markdown code block (```json … ```): people often copy
+  // the fences along with the JSON, which would otherwise fall through to the
+  // CSV path and produce garbage cards.
+  const text = input.trim().replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
   if (!text) return { cards: [] };
 
   // Try JSON first.

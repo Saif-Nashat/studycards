@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/auth";
 import type { Prisma } from "@prisma/client";
 
 // Build a study queue.
@@ -12,6 +13,9 @@ import type { Prisma } from "@prisma/client";
 //   limit        (custom) max cards
 //   newLimit     (due) cap on new cards
 export async function GET(req: Request) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const deckId = searchParams.get("deckId") || undefined;
   const tag = searchParams.get("tag")?.trim() || undefined;
@@ -22,8 +26,8 @@ export async function GET(req: Request) {
   const newLimit = Number(searchParams.get("newLimit")) || 20;
   const now = new Date();
 
-  // Base filter shared by all modes: deck + tag(s).
-  const base: Prisma.CardWhereInput = {};
+  // Base filter shared by all modes: owner + deck + tag(s).
+  const base: Prisma.CardWhereInput = { userId: user.id };
   if (deckId) base.deckId = deckId;
   const tagList = [tag, ...(tagsParam ? tagsParam.split(",") : [])].map((t) => t?.trim()).filter(Boolean) as string[];
   if (tagList.length) base.OR = tagList.map((t) => ({ tags: { contains: t } }));
@@ -45,8 +49,10 @@ export async function GET(req: Request) {
   }
 
   if (mode === "hard") {
+    // Hard-rated + flagged/leech only; "again"-rated cards are excluded (they
+    // reappear in the normal due queue almost immediately).
     const cards = await prisma.card.findMany({
-      where: { AND: [base, { OR: [{ flagged: true }, { isLeech: true }, { lastRating: { in: ["again", "hard"] } }] }] },
+      where: { AND: [base, { OR: [{ flagged: true }, { isLeech: true }, { lastRating: "hard" }] }] },
       orderBy: { due: "asc" },
       take: 200,
     });

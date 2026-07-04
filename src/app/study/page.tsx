@@ -98,8 +98,9 @@ function TestBuilder() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold flex items-center gap-2 mb-1"><FlaskConical size={24} /> Create a test</h1>
-      <p className="text-[var(--color-muted)] mb-5">Pick your subjects and which cards to include, then start. Or use a quick option below.</p>
+      <span className="eyebrow mb-2.5">Session builder</span>
+      <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><FlaskConical size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Create a test</h1>
+      <p className="text-[var(--color-muted)] mb-5 mt-1">Pick your subjects and which cards to include, then start. Or use a quick option below.</p>
 
       {/* Quick options */}
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -112,7 +113,7 @@ function TestBuilder() {
       ) : (
         <>
           {/* Subjects */}
-          <div className="card-surface p-5 mb-4">
+          <div id="tour-test-builder" className="card-surface p-5 mb-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold">1. Subjects {selected.size > 0 && <span className="text-sm font-normal text-[var(--color-muted)]">({selected.size} selected)</span>}</h2>
               {selected.size > 0 && <button onClick={() => setSelected(new Set())} className="text-sm text-[var(--color-brand)]">Clear</button>}

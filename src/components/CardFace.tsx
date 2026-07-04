@@ -134,7 +134,7 @@ export function CardAnswer({ card }: { card: CardData }) {
 // Render plain text, keeping line breaks.
 function Text({ value, className }: { value: string; className?: string }) {
   return (
-    <div className={className}>
+    <div className={`${className ?? ""} break-words`}>
       {value.split(/\r?\n/).map((line, i) => (
         <p key={i}>{line || " "}</p>
       ))}

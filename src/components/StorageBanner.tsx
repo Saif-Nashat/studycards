@@ -43,10 +43,10 @@ export default function StorageBanner() {
       <div className="mx-auto max-w-6xl flex items-center gap-3">
         <AlertTriangle size={18} style={{ color: border }} className="shrink-0" />
         <p style={{ color: fg }} className="flex-1">
-          <b>{critical ? "Database almost full" : "Database filling up"}</b> — using{" "}
-          <b>{formatBytes(usage.usedBytes)}</b> of {formatBytes(usage.limitBytes)} ({usage.pct}%).{" "}
+          <b>{critical ? "Your storage share is almost full" : "Your storage share is filling up"}</b> — using{" "}
+          <b>{formatBytes(usage.usedBytes)}</b> of your {formatBytes(usage.limitBytes)} ({usage.pct}%).{" "}
           {critical
-            ? "New imports may fail. Free up space by deleting a deck you don't need."
+            ? "New imports will be blocked. Free up space by deleting a deck you don't need."
             : "Consider deleting a large deck soon."}{" "}
           <Link href="/settings#storage" className="underline font-semibold">Manage storage</Link>
         </p>

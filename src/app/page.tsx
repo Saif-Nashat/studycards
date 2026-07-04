@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Tag, Trophy } from "lucide-react";
+import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Tag, Trophy, ArrowRight } from "lucide-react";
 import { groupTags } from "@/lib/tagGroups";
+import NumberTicker from "@/components/NumberTicker";
 
 interface Stats { total: number; due: number; new: number; flagged: number; hard: number; decks: number; reviewedToday: number; }
 interface Deck { id: string; name: string; description: string; total: number; due: number; new: number; }
@@ -61,10 +62,14 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="card-surface gradient-ring p-7 md:p-9 relative overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 18, filter: "blur(5px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+        className="card-surface gradient-ring p-7 md:p-10 relative overflow-hidden"
+      >
         <motion.div
           className="absolute -right-10 -top-10 w-52 h-52 rounded-full bg-[var(--color-accent)]/25 blur-3xl"
           animate={{ x: [0, -16, 0], y: [0, 12, 0], scale: [1, 1.18, 1] }}
@@ -80,42 +85,61 @@ export default function Dashboard() {
           animate={{ x: [0, 12, 0], y: [0, -8, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
         />
-        <p className="text-[var(--color-muted)] font-medium relative">Welcome back 👋</p>
-        <h1 className="text-3xl md:text-5xl font-extrabold mt-1 relative tracking-tight">Ready to <span className="text-gradient">revise?</span></h1>
-        <p className="text-[var(--color-muted)] mt-2 max-w-lg">
+        <span className="eyebrow relative mb-4">Welcome back</span>
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl mt-3 relative tracking-tight leading-[1.15]">
+          Ready to <span className="text-gradient italic">revise?</span>
+        </h1>
+        <p className="text-[var(--color-muted)] mt-3 max-w-lg relative">
           You have <b className="text-[var(--color-ink)]">{stats.due + stats.new}</b> cards waiting across{" "}
           <b className="text-[var(--color-ink)]">{stats.decks}</b> deck{stats.decks === 1 ? "" : "s"}.
         </p>
-        <div className="flex flex-wrap gap-3 mt-5">
-          <Link href="/study?go=1&mode=due" className="btn btn-primary"><Play size={18} /> Study all due ({stats.due + stats.new})</Link>
-          <Link href="/hard" className="btn btn-ghost"><Flame size={18} /> Hard cards ({stats.hard})</Link>
-          <Link href="/achievements" className="btn btn-ghost"><Trophy size={18} /> Trophies</Link>
+        <div className="flex flex-wrap gap-3 mt-6 relative">
+          <Link id="tour-study-cta" href="/study?go=1&mode=due" className="btn btn-primary py-3 px-6">
+            <Play size={17} /> Study all due ({stats.due + stats.new})
+            <span className="btn-orb"><ArrowRight size={13} /></span>
+          </Link>
+          <Link href="/hard" className="btn btn-ghost py-3"><Flame size={17} strokeWidth={1.75} /> Hard cards ({stats.hard})</Link>
+          <Link href="/achievements" className="btn btn-ghost py-3"><Trophy size={17} strokeWidth={1.75} /> Trophies</Link>
         </div>
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div id="tour-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {statCards.map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }} className="card-surface card-lift p-5">
+          <motion.div
+            key={s.label}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.06, duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
+            className="card-surface card-lift p-5"
+          >
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--color-muted)]">{s.label}</span>
-              <span className="grid place-items-center w-9 h-9 rounded-xl" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 16%, transparent)` }}>
-                <s.icon size={18} />
+              <span
+                className="grid place-items-center w-9 h-9 rounded-xl"
+                style={{
+                  color: s.color,
+                  background: `color-mix(in srgb, ${s.color} 13%, transparent)`,
+                  boxShadow: `inset 0 1px 0 var(--card-highlight), inset 0 0 0 1px color-mix(in srgb, ${s.color} 18%, transparent)`,
+                }}
+              >
+                <s.icon size={17} strokeWidth={1.75} />
               </span>
             </div>
-            <p className="text-3xl font-bold mt-2 tabular-nums">{s.value}</p>
+            <p className="text-3xl font-bold mt-2 tabular-nums tracking-tight">
+              <NumberTicker value={s.value} />
+            </p>
           </motion.div>
         ))}
       </div>
 
       {/* Decks */}
-      <div>
+      <div id="tour-decks">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2"><Layers size={20} /> Your decks</h2>
+          <h2 className="font-display text-2xl flex items-center gap-2.5"><Layers size={20} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Your decks</h2>
         </div>
 
-        <form onSubmit={createDeck} className="flex gap-2 mb-4">
+        <form onSubmit={createDeck} className="flex gap-2 mb-5">
           <input className="input max-w-xs" placeholder="New deck name (e.g. Anatomy)" value={newDeck} onChange={(e) => setNewDeck(e.target.value)} />
           <button className="btn btn-ghost" disabled={creating}>{creating ? <Loader2 className="animate-spin" size={16} /> : <><Plus size={16} /> Add deck</>}</button>
         </form>
@@ -125,14 +149,19 @@ export default function Dashboard() {
             No decks yet. Create one above, then <Link href="/import" className="text-[var(--color-brand)] font-medium">import some cards</Link>.
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {decks.map((d, i) => (
-              <motion.div key={d.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }} className="card-surface card-lift p-5 flex flex-col">
+              <motion.div
+                key={d.id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                className="card-surface card-lift p-5 flex flex-col"
+              >
                 <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-lg leading-tight">{d.name}</h3>
-                  <button onClick={() => deleteDeck(d.id, d.name)} className="text-[var(--color-muted)] hover:text-[var(--color-again)] p-1" title="Delete deck">
-                    <Trash2 size={15} />
+                  <h3 className="font-semibold text-lg leading-tight tracking-tight">{d.name}</h3>
+                  <button onClick={() => deleteDeck(d.id, d.name)} className="text-[var(--color-muted)] hover:text-[var(--color-again)] p-1 transition-colors" title="Delete deck">
+                    <Trash2 size={15} strokeWidth={1.75} />
                   </button>
                 </div>
                 <div className="flex gap-4 text-sm text-[var(--color-muted)] mt-3">
@@ -154,17 +183,17 @@ export default function Dashboard() {
       {/* Study by topic — organised into Basic systems vs Medical topics. */}
       {tags.length > 0 && (
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2 mb-1"><Tag size={20} /> Study by topic</h2>
+          <h2 className="font-display text-2xl flex items-center gap-2.5 mb-1"><Tag size={20} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Study by topic</h2>
           <p className="text-[var(--color-muted)] text-sm mb-4">Drill a single subject across all your decks. The number is how many are ready now.</p>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {groupTags(tags).map((group) => (
               <div key={group.key}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] mb-2">{group.label}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)] mb-2.5">{group.label}</p>
                 <div className="flex flex-wrap gap-2">
                   {group.items.map((t) => (
                     <button key={t.tag}
                       onClick={() => router.push(`/study?go=1&mode=due&tag=${encodeURIComponent(t.tag)}&tagName=${encodeURIComponent(t.tag)}`)}
-                      className="card-surface card-lift px-3.5 py-2 text-sm font-medium transition flex items-center gap-2">
+                      className="card-surface card-lift !rounded-full px-4 py-2 text-sm font-medium transition flex items-center gap-2">
                       {t.tag}
                       <span className={`text-xs font-bold ${t.ready > 0 ? "text-[var(--color-brand)]" : "text-[var(--color-muted)]"}`}>{t.ready}</span>
                       <span className="text-xs text-[var(--color-muted)]">/ {t.total}</span>

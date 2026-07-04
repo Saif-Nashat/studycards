@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/auth";
 import { parseImport } from "@/lib/importParser";
+import { quotaError } from "@/lib/storage";
 
 // Import claude.ai-generated cards (pasted text or uploaded file content).
 // Body: { text: string, deckId?: string, deckName?: string, preview?: boolean }
 export async function POST(req: Request) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
   const { text, deckId, deckName, preview } = await req.json();
   if (!text || !String(text).trim()) {
     return NextResponse.json({ error: "Nothing to import" }, { status: 400 });
@@ -25,14 +30,25 @@ export async function POST(req: Request) {
     });
   }
 
+  // The whole import must fit inside the user's storage share.
+  const incomingBytes = parsed.cards.reduce(
+    (s, c) => s + (c.front?.length || 0) + (c.back?.length || 0) + (c.extra?.length || 0) + (c.mnemonic?.length || 0) + (c.tags?.length || 0),
+    0
+  );
+  const quotaMsg = await quotaError(user.id, incomingBytes);
+  if (quotaMsg) return NextResponse.json({ error: quotaMsg }, { status: 413 });
+
   // Resolve target deck: explicit id > explicit name > name from file > fallback.
   let targetDeckId = deckId as string | undefined;
-  if (!targetDeckId) {
+  if (targetDeckId) {
+    const deck = await prisma.deck.findFirst({ where: { id: targetDeckId, userId: user.id } });
+    if (!deck) return NextResponse.json({ error: "Deck not found" }, { status: 404 });
+  } else {
     const name = (deckName || parsed.deckName || "Imported cards").trim();
     const deck = await prisma.deck.upsert({
-      where: { name },
+      where: { userId_name: { userId: user.id, name } },
       update: {},
-      create: { name },
+      create: { name, userId: user.id },
     });
     targetDeckId = deck.id;
   }
@@ -52,7 +68,7 @@ export async function POST(req: Request) {
       continue;
     }
     seen.add(c.front.trim());
-    await prisma.card.create({ data: { ...c, deckId: targetDeckId } });
+    await prisma.card.create({ data: { ...c, deckId: targetDeckId, userId: user.id } });
     added++;
   }
 

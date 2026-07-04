@@ -9,6 +9,25 @@ const nextConfig: NextConfig = {
     // corrupted (the zip's index lives at the END of the file) and never imports.
     proxyClientMaxBodySize: "500mb",
   },
+
+  // Baseline security headers for every response.
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          // Browsers must not second-guess declared content types.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // The app has no reason to ever be embedded in a frame (clickjacking).
+          { key: "X-Frame-Options", value: "DENY" },
+          // Don't leak URLs to other origins.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // The app never uses these device APIs.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

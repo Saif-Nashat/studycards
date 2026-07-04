@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/auth";
 
 // Reset study *progress* only — spaced-repetition scheduling and review history —
 // while leaving every deck and card completely intact.
@@ -13,9 +14,13 @@ import { prisma } from "@/lib/prisma";
 //   • every deck and every card (content, images, tags, sources)
 //   • manual flags the user set themselves (their own "review later" list)
 export async function POST() {
-  // Order matters only for clarity; both are independent tables.
-  const deleted = await prisma.review.deleteMany({});
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
+  // Only the logged-in user's history and scheduling — nobody else's.
+  const deleted = await prisma.review.deleteMany({ where: { userId: user.id } });
   const reset = await prisma.card.updateMany({
+    where: { userId: user.id },
     data: {
       state: "new",
       due: new Date(),

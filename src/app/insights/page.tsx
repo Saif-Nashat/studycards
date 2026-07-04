@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { BarChart3, Flame, CalendarCheck, Target, Loader2, Layers, TrendingUp, AlertTriangle } from "lucide-react";
+import NumberTicker from "@/components/NumberTicker";
 
 function accuracyColor(a: number): string {
   if (a < 50) return "var(--color-again)";
@@ -63,12 +64,13 @@ export default function InsightsPage() {
   return (
     <div className="space-y-7">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2"><BarChart3 size={24} /> My insights</h1>
-        <p className="text-[var(--color-muted)]">Track your revision progress over time.</p>
+        <span className="eyebrow mb-2.5">Performance</span>
+        <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><BarChart3 size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> My insights</h1>
+        <p className="text-[var(--color-muted)] mt-1">Track your revision progress over time.</p>
       </div>
 
       {/* Top stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div id="tour-insights" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {topCards.map((s, i) => (
           <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="card-surface card-lift p-5">
             <div className="flex items-center justify-between">
@@ -77,7 +79,7 @@ export default function InsightsPage() {
                 <s.icon size={18} />
               </span>
             </div>
-            <p className="text-3xl font-bold mt-2 tabular-nums">{s.value} {"suffix" in s && s.suffix ? <span className="text-base font-medium text-[var(--color-muted)]">{s.suffix}</span> : null}</p>
+            <p className="text-3xl font-bold mt-2 tabular-nums tracking-tight"><NumberTicker value={s.value} /> {"suffix" in s && s.suffix ? <span className="text-base font-medium text-[var(--color-muted)]">{s.suffix}</span> : null}</p>
           </motion.div>
         ))}
       </div>

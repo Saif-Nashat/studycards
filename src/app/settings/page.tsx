@@ -18,7 +18,10 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold flex items-center gap-2"><Settings size={22} /> Settings &amp; help</h1>
+      <div>
+        <span className="eyebrow mb-2.5">Control room</span>
+        <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Settings size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Settings &amp; help</h1>
+      </div>
 
       {/* Tutorial */}
       <section className="card-surface p-6">
@@ -35,11 +38,16 @@ export default function SettingsPage() {
       <StoragePanel />
 
       {/* Prompt */}
-      <section className="card-surface p-6">
+      <section id="tour-prompt" className="card-surface p-6">
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><Sparkles size={18} className="text-[var(--color-brand)]" /> Make cards on claude.ai</h2>
+        <p className="text-[var(--color-muted)] text-sm mb-2">
+          1. Click copy below. 2. Go to <b>claude.ai</b> and paste it. 3. Replace the last line with text from
+          <b> any study material</b>. 4. Claude replies with a JSON block — copy it. 5. Paste it into the <b>Import</b> page here.
+        </p>
         <p className="text-[var(--color-muted)] text-sm mb-4">
-          1. Click copy below. 2. Go to <b>claude.ai</b> and paste it. 3. Replace the last line with text copied from your MRCOG PDF.
-          4. Claude replies with a JSON block — copy it. 5. Paste it into the <b>Import</b> page here.
+          📚 It doesn&apos;t have to be an MRCOG PDF — paste <b>university slides, lecture notes, textbook chapters,
+          articles, case notes, code documentation, language vocabulary</b>… anything you want to learn, on any subject.
+          The prompt adapts to whatever material you give it.
         </p>
         <div className="relative">
           <pre className="bg-[#0f172a] text-[#e2e8f0] rounded-xl p-4 text-xs overflow-x-auto max-h-72 whitespace-pre-wrap">{CLAUDE_PROMPT}</pre>

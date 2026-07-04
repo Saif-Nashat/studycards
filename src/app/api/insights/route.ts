@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUser } from "@/lib/auth";
 
 // Format a date as a local YYYY-MM-DD key.
 function dayKey(d: Date): string {
@@ -7,6 +8,10 @@ function dayKey(d: Date): string {
 }
 
 export async function GET() {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+  const uid = user.id;
+
   const now = new Date();
   const startOfToday = new Date(now); startOfToday.setHours(0, 0, 0, 0);
   const sevenAgo = new Date(startOfToday); sevenAgo.setDate(sevenAgo.getDate() - 6);
@@ -14,17 +19,17 @@ export async function GET() {
   const windowStart = new Date(startOfToday); windowStart.setDate(windowStart.getDate() - 120);
 
   const [totalReviews, today, last7, byRating, recent, cards, taggedReviews] = await Promise.all([
-    prisma.review.count(),
-    prisma.review.count({ where: { reviewedAt: { gte: startOfToday } } }),
-    prisma.review.count({ where: { reviewedAt: { gte: sevenAgo } } }),
-    prisma.review.groupBy({ by: ["rating"], _count: { rating: true } }),
+    prisma.review.count({ where: { userId: uid } }),
+    prisma.review.count({ where: { userId: uid, reviewedAt: { gte: startOfToday } } }),
+    prisma.review.count({ where: { userId: uid, reviewedAt: { gte: sevenAgo } } }),
+    prisma.review.groupBy({ by: ["rating"], where: { userId: uid }, _count: { rating: true } }),
     prisma.review.findMany({
-      where: { reviewedAt: { gte: windowStart } },
+      where: { userId: uid, reviewedAt: { gte: windowStart } },
       select: { reviewedAt: true },
       orderBy: { reviewedAt: "desc" },
     }),
-    prisma.card.findMany({ select: { state: true, intervalDays: true } }),
-    prisma.review.findMany({ select: { rating: true, card: { select: { tags: true } } } }),
+    prisma.card.findMany({ where: { userId: uid }, select: { state: true, intervalDays: true } }),
+    prisma.review.findMany({ where: { userId: uid }, select: { rating: true, card: { select: { tags: true } } } }),
   ]);
 
   // Rating distribution

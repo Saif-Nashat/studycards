@@ -25,8 +25,10 @@ export async function proxy(req: NextRequest) {
   let valid = false;
   if (token) {
     try {
-      await jwtVerify(token, secretKey());
-      valid = true;
+      const { payload } = await jwtVerify(token, secretKey(), { algorithms: ["HS256"] });
+      // Sessions must belong to an account; pre-multiuser tokens (no uid)
+      // get bounced to the login screen to sign in as a user.
+      valid = typeof payload.uid === "string" && payload.uid.length > 0;
     } catch {
       valid = false;
     }
