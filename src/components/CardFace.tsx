@@ -89,7 +89,7 @@ export function CardAnswer({ card }: { card: CardData }) {
     const segments = clozeSegments(card.front);
     return (
       <div className="space-y-3">
-        <p className="text-xl md:text-2xl leading-relaxed">
+        <p dir="auto" className="text-xl md:text-2xl leading-relaxed">
           {segments.map((s, i) =>
             s.answer ? (
               <mark key={i} className="rounded px-1" style={{ background: "var(--color-chip-bg)", color: "var(--color-chip-ink)" }}>{s.text}</mark>
@@ -110,7 +110,7 @@ export function CardAnswer({ card }: { card: CardData }) {
       <div className="space-y-3">
         <ul className="space-y-2 text-lg md:text-xl">
           {items.map((it, i) => (
-            <li key={i} className="flex gap-2.5 items-start">
+            <li key={i} dir="auto" className="flex gap-2.5 items-start">
               <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[var(--color-brand)] shrink-0" />
               <span>{it}</span>
             </li>
@@ -131,12 +131,13 @@ export function CardAnswer({ card }: { card: CardData }) {
   );
 }
 
-// Render plain text, keeping line breaks.
+// Render plain text, keeping line breaks. dir="auto" per line so RTL scripts
+// (Arabic, Hebrew…) align right while Latin lines in the same card stay left.
 function Text({ value, className }: { value: string; className?: string }) {
   return (
     <div className={`${className ?? ""} break-words`}>
       {value.split(/\r?\n/).map((line, i) => (
-        <p key={i}>{line || " "}</p>
+        <p key={i} dir="auto">{line || " "}</p>
       ))}
     </div>
   );
@@ -151,7 +152,7 @@ function AnswerExtras({ card }: { card: CardData }) {
         <div className="rounded-xl bg-[var(--color-tint)] border border-[var(--color-line)] p-3.5 text-sm">
           <p className="font-semibold text-[var(--color-chip-ink)] mb-1">Why this is correct</p>
           <div className="text-[var(--color-ink)] leading-relaxed">
-            {card.extra.split(/\r?\n/).map((l, i) => <p key={i}>{l || " "}</p>)}
+            {card.extra.split(/\r?\n/).map((l, i) => <p key={i} dir="auto">{l || " "}</p>)}
           </div>
         </div>
       )}
@@ -159,7 +160,7 @@ function AnswerExtras({ card }: { card: CardData }) {
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-3.5 text-sm">
           <p className="font-semibold text-amber-700 mb-1">🧠 Mnemonic</p>
           <div className="text-amber-900 leading-relaxed">
-            {card.mnemonic.split(/\r?\n/).map((l, i) => <p key={i}>{l || " "}</p>)}
+            {card.mnemonic.split(/\r?\n/).map((l, i) => <p key={i} dir="auto">{l || " "}</p>)}
           </div>
         </div>
       )}

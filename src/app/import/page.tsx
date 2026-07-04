@@ -9,7 +9,7 @@ interface Deck { id: string; name: string; }
 export default function ImportPage() {
   const [tab, setTab] = useState<"text" | "apkg">("text");
   const [decks, setDecks] = useState<Deck[]>([]);
-  useEffect(() => { fetch("/api/decks").then((r) => r.json()).then(setDecks); }, []);
+  useEffect(() => { fetch("/api/decks").then((r) => r.json()).then((d) => setDecks(Array.isArray(d) ? d : [])); }, []);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -20,9 +20,10 @@ export default function ImportPage() {
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
         <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
         <span>
-          <b className="text-[var(--color-ink)]">Use any material you like.</b> Turn university slides, textbooks, lecture notes or
+          <b className="text-[var(--color-ink)]">Use any material you like — in any language.</b> Turn university slides, textbooks, lecture notes or
           articles into flashcards as CSV or JSON — and get creative: it doesn&apos;t have to be medicine. Language vocabulary,
-          law, history, coding, exam prep of any kind… if it fits on a flashcard, you can study it here.
+          law, history, coding, exam prep of any kind… if it fits on a flashcard, you can study it here. Cards can be written
+          in <b className="text-[var(--color-ink)]">any language</b> — Arabic and other right-to-left scripts display correctly, and you can even mix languages on the same card.
         </span>
       </div>
 
@@ -117,8 +118,8 @@ function TextImport({ decks }: { decks: Deck[] }) {
           <div className="space-y-2 mb-4 max-h-52 overflow-y-auto">
             {preview.sample.map((c, i) => (
               <div key={i} className="text-sm border border-[var(--color-line)] rounded-lg p-2.5">
-                <p className="font-medium">{c.front}</p>
-                <p className="text-[var(--color-muted)]">{c.back}</p>
+                <p dir="auto" className="font-medium">{c.front}</p>
+                <p dir="auto" className="text-[var(--color-muted)]">{c.back}</p>
               </div>
             ))}
           </div>

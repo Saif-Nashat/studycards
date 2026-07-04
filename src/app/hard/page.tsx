@@ -20,7 +20,7 @@ export default function HardPage() {
     setLoading(true);
     fetch("/api/cards?hard=1")
       .then((r) => r.json())
-      .then((d) => { setCards(d); setLoading(false); });
+      .then((d) => { setCards(Array.isArray(d) ? d : []); setLoading(false); });
   }
   useEffect(load, []);
 

@@ -54,7 +54,7 @@ function TestBuilder() {
   const [goalType, setGoalType] = useState<"none" | "cards" | "time">("none");
   const [goalValue, setGoalValue] = useState(20);
 
-  useEffect(() => { fetch("/api/tags").then((r) => r.json()).then((d) => { setTags(d); setLoading(false); }); }, []);
+  useEffect(() => { fetch("/api/tags").then((r) => r.json()).then((d) => { setTags(Array.isArray(d) ? d : []); setLoading(false); }); }, []);
 
   function toggle(tag: string) {
     setSelected((s) => { const n = new Set(s); n.has(tag) ? n.delete(tag) : n.add(tag); return n; });

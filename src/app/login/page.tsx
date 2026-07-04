@@ -66,7 +66,7 @@ export default function LoginPage() {
           </motion.span>
           <span className="eyebrow mb-3"><Sparkles size={10} /> Private study suite</span>
           <h1 className="font-display text-4xl tracking-tight">
-            <span className="text-gradient">StudyCards</span>
+            <span className="text-gradient">MediCards</span>
           </h1>
           <p className="text-[var(--color-muted)] text-sm mt-1.5">Your private MRCOG &amp; USMLE flashcards</p>
         </div>

@@ -251,6 +251,7 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
+          dir="auto"
           role="textbox"
           aria-multiline="true"
           data-placeholder={PLACEHOLDER}

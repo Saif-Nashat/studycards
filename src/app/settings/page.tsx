@@ -25,7 +25,7 @@ export default function SettingsPage() {
 
       {/* Tutorial */}
       <section className="card-surface p-6">
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><GraduationCap size={18} className="text-[var(--color-brand)]" /> How to use StudyCards</h2>
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><GraduationCap size={18} className="text-[var(--color-brand)]" /> How to use MediCards</h2>
         <p className="text-[var(--color-muted)] text-sm mb-4">
           New here, or want a refresher? Replay the guided tour of every feature — from studying and building tests to importing your own material.
         </p>

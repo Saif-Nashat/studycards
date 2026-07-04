@@ -8,11 +8,19 @@ import { jwtVerify } from "jose";
 const COOKIE_NAME = "sc_session";
 
 function secretKey() {
-  const secret = process.env.SESSION_SECRET || "dev-insecure-secret-change-me";
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    // Fail closed in production: a missing secret must never silently fall
+    // back to a publicly known value, or anyone could forge session tokens.
+    if (process.env.NODE_ENV === "production") throw new Error("SESSION_SECRET is not set");
+    return new TextEncoder().encode("dev-insecure-secret-change-me");
+  }
   return new TextEncoder().encode(secret);
 }
 
-const PUBLIC_PATHS = ["/login", "/api/login"];
+// Crawler/share assets must stay reachable without a session: robots and the
+// sitemap for search engines, icon and opengraph-image for link previews.
+const PUBLIC_PATHS = ["/login", "/api/login", "/robots.txt", "/sitemap.xml", "/icon", "/opengraph-image", "/favicon.ico"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

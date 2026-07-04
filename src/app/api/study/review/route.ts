@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  const { cardId, rating } = await req.json();
+  const { cardId, rating } = await req.json().catch(() => ({}));
   const validRatings: Rating[] = ["again", "hard", "good", "easy"];
   if (!cardId || !validRatings.includes(rating)) {
     return NextResponse.json({ error: "cardId and valid rating required" }, { status: 400 });

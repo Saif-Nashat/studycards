@@ -39,7 +39,7 @@ export default function NavBar() {
           <span className="logo-badge grid place-items-center w-9 h-9 rounded-xl text-white">
             <GraduationCap size={19} />
           </span>
-          <span className="hidden sm:inline tracking-tight">StudyCards</span>
+          <span className="hidden sm:inline tracking-tight">MediCards</span>
         </Link>
 
         <nav className="flex items-center gap-0.5 flex-wrap order-last w-full lg:order-none lg:w-auto lg:flex-1">

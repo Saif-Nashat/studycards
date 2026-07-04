@@ -29,13 +29,16 @@ export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  const { name, description } = await req.json();
-  if (!name || !name.trim()) {
+  const { name, description } = await req.json().catch(() => ({}));
+  if (!name || typeof name !== "string" || !name.trim()) {
     return NextResponse.json({ error: "Name required" }, { status: 400 });
+  }
+  if (name.trim().length > 120) {
+    return NextResponse.json({ error: "Deck name is too long (max 120 characters)" }, { status: 400 });
   }
   try {
     const deck = await prisma.deck.create({
-      data: { name: name.trim(), description: description || "", userId: user.id },
+      data: { name: name.trim(), description: String(description || "").slice(0, 2000), userId: user.id },
     });
     return NextResponse.json(deck);
   } catch {
@@ -48,7 +51,7 @@ export async function DELETE(req: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  const { id } = await req.json();
+  const { id } = await req.json().catch(() => ({}));
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const { count } = await prisma.deck.deleteMany({ where: { id, userId: user.id } });
   if (!count) return NextResponse.json({ error: "Deck not found" }, { status: 404 });

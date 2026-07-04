@@ -11,6 +11,10 @@ export async function POST(req: Request) {
   if (!username || !password) {
     return NextResponse.json({ error: "Username and password required" }, { status: 400 });
   }
+  // Real credentials are short; oversized values are garbage or abuse.
+  if (String(username).length > 100 || String(password).length > 200) {
+    return NextResponse.json({ error: "Wrong username or password" }, { status: 401 });
+  }
 
   // Brute-force guard: throttle by client IP and by the account being tried.
   const ip = (req.headers.get("x-forwarded-for") ?? "local").split(",")[0].trim();

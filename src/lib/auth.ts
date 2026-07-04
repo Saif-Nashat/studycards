@@ -13,7 +13,13 @@ export interface SessionUser {
 }
 
 function secretKey() {
-  const secret = process.env.SESSION_SECRET || "dev-insecure-secret-change-me";
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    // Fail closed in production: a missing secret must never silently fall
+    // back to a publicly known value, or anyone could forge session tokens.
+    if (process.env.NODE_ENV === "production") throw new Error("SESSION_SECRET is not set");
+    return new TextEncoder().encode("dev-insecure-secret-change-me");
+  }
   return new TextEncoder().encode(secret);
 }
 

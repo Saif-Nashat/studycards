@@ -9,11 +9,11 @@ import { X, ArrowRight, ArrowLeft, Check, GraduationCap, Sparkles } from "lucide
 // actually navigates to each page, spotlights the real piece of UI it's
 // talking about (dimming everything else), and explains what you can do
 // there. Opens automatically on first login (tracked in localStorage) and can
-// be replayed from Settings via the `studycards:open-tutorial` window event.
+// be replayed from Settings via the `medicards:open-tutorial` window event.
 // Mounted once, globally, from the root layout.
 
 const SEEN_KEY = "sc_tutorial_seen";
-export const OPEN_TUTORIAL_EVENT = "studycards:open-tutorial";
+export const OPEN_TUTORIAL_EVENT = "medicards:open-tutorial";
 
 interface Step {
   route: string;            // page this step lives on
@@ -25,10 +25,10 @@ interface Step {
 const STEPS: Step[] = [
   {
     route: "/",
-    title: "Welcome to StudyCards 👋",
+    title: "Welcome to MediCards 👋",
     body: (
       <>
-        <p>StudyCards helps you learn and <b>remember</b> using <b>spaced repetition</b> — each card comes back right before you&apos;d forget it, so facts actually stick.</p>
+        <p>MediCards helps you learn and <b>remember</b> using <b>spaced repetition</b> — each card comes back right before you&apos;d forget it, so facts actually stick.</p>
         <p className="mt-2">This tour walks you through the app <b>page by page</b>, pointing at the real buttons as we go. Takes ~2 minutes — skip anytime and replay it later from <b>Settings</b>.</p>
       </>
     ),
@@ -131,7 +131,7 @@ const STEPS: Step[] = [
     body: (
       <>
         <p>Two ways in: paste <b>claude.ai cards</b> (JSON/CSV), or upload a full <b>Anki deck (.apkg)</b> — images included, free community decks like AnKing work great.</p>
-        <p className="mt-2">And it&apos;s not just medicine: <b>university slides, notes, books, languages, law, code</b> — if it fits on a flashcard, it works here.</p>
+        <p className="mt-2">And it&apos;s not just medicine: <b>university slides, notes, books, languages, law, code</b> — if it fits on a flashcard, it works here. Cards can be in <b>any language</b> too — Arabic and other right-to-left scripts display correctly.</p>
       </>
     ),
   },
@@ -197,8 +197,14 @@ export default function Tutorial() {
   }, []);
 
   // Auto-open on first ever visit (once localStorage says otherwise, never again).
+  // Guarded by a ref: this effect re-runs on every route change (pathname is a
+  // dependency so it can fire after leaving /login), but it must only auto-open
+  // once per app load — the tour itself navigates between pages, and without
+  // the guard each navigation would reset it back to step 1.
+  const autoOpened = useRef(false);
   useEffect(() => {
-    if (pathname === "/login") return;
+    if (pathname === "/login" || autoOpened.current) return;
+    autoOpened.current = true;
     let seen = false;
     try { seen = localStorage.getItem(SEEN_KEY) === "1"; } catch { seen = true; }
     // Post-mount on purpose: the server renders the tour closed, so reading
@@ -339,14 +345,18 @@ export default function Tutorial() {
             <div className="absolute inset-0 bg-[rgba(2,12,6,0.6)] backdrop-blur-[2px]" />
           )}
 
-          {/* The step card */}
+          {/* The step card. Positioning lives on a plain wrapper div: the card
+              itself is animated by framer-motion, which owns its transform —
+              putting the translateX(-50%) centering on the same element gets
+              overwritten by the animation and the card drifts half off screen
+              (most visibly on phones). */}
+          <div className="fixed w-[calc(100vw-2rem)] max-w-md z-10" style={cardStyle}>
           <motion.div
             key={step}
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: settled || !s.selector ? 1 : 0.4, y: 0, scale: 1 }}
             transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-            className="card-surface gradient-ring fixed w-[calc(100vw-2rem)] max-w-md p-5 md:p-6 z-10"
-            style={cardStyle}
+            className="card-surface gradient-ring p-5 md:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <button onClick={() => close(true)} className="absolute top-3.5 right-3.5 text-[var(--color-muted)] hover:text-[var(--color-ink)]" title="Close tour"><X size={18} /></button>
@@ -394,6 +404,7 @@ export default function Tutorial() {
               )}
             </div>
           </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

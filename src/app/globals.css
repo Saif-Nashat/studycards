@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================================
-   StudyCards — premium design system
+   MediCards — premium design system
    Editorial-luxury light theme / ethereal-glass dark theme.
    Brand + rating colours stay constant across themes; everything
    that changes between light and dark lives in the :root /
@@ -24,8 +24,10 @@
   --color-easy: #0e9ac2;
 
   --radius-xl2: 1.4rem;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  /* Noto Sans Arabic sits after the Latin-only faces so Arabic characters
+     fall through to it instead of an arbitrary system font. */
+  --font-sans: var(--font-geist-sans), var(--font-noto-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), var(--font-noto-arabic), Georgia, "Times New Roman", serif;
 
   /* Signature easing — heavy, physical, expensive. */
   --ease-lux: cubic-bezier(0.32, 0.72, 0, 1);

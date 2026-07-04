@@ -63,10 +63,10 @@ function BrowseInner() {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (deckFilter) params.set("deckId", deckFilter);
-    fetch(`/api/cards?${params}`).then((r) => r.json()).then((d) => { setCards(d); setLoading(false); });
+    fetch(`/api/cards?${params}`).then((r) => r.json()).then((d) => { setCards(Array.isArray(d) ? d : []); setLoading(false); });
   }, [q, deckFilter]);
 
-  useEffect(() => { fetch("/api/decks").then((r) => r.json()).then(setDecks); }, []);
+  useEffect(() => { fetch("/api/decks").then((r) => r.json()).then((d) => setDecks(Array.isArray(d) ? d : [])); }, []);
   useEffect(() => { const t = setTimeout(loadCards, 250); return () => clearTimeout(t); }, [loadCards]);
 
   async function toggleFlag(c: Card) {
@@ -104,7 +104,7 @@ function BrowseInner() {
       <div className="flex gap-2 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-          <input className="input pl-9" placeholder="Search questions, answers, tags…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input dir="auto" className="input pl-9" placeholder="Search questions, answers, tags…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select className="input max-w-[220px]" value={deckFilter} onChange={(e) => setDeckFilter(e.target.value)}>
           <option value="">All decks</option>
@@ -126,10 +126,10 @@ function BrowseInner() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium flex items-center gap-2">
                     {c.isLeech && <span className="chip" style={{ background: "var(--color-danger-bg)", color: "var(--color-again)" }}><Bug size={11} /> Leech</span>}
-                    <span className="truncate">{c.front.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, "[$1]")}</span>
+                    <span dir="auto" className="truncate">{c.front.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, "[$1]")}</span>
                     {(c.imageFront || c.imageBack) && <ImagePlus size={13} className="text-[var(--color-muted)] shrink-0" />}
                   </p>
-                  <p className="text-sm text-[var(--color-muted)] truncate">{c.type === "list" ? c.back.replace(/[[\]"]/g, "") : c.back}</p>
+                  <p dir="auto" className="text-sm text-[var(--color-muted)] truncate">{c.type === "list" ? c.back.replace(/[[\]"]/g, "") : c.back}</p>
                   <div className="flex gap-2 mt-1.5 flex-wrap">
                     {c.deck?.name && <span className="text-xs text-[var(--color-muted)]">{c.deck.name}</span>}
                     {c.tags && <span className="text-xs text-[var(--color-brand)]">{c.tags}</span>}
@@ -214,25 +214,25 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
             </label>
           </div>
           <label className="block"><span className="text-sm font-medium">Question / front{form.type === "cloze" ? " (use {{c1::hidden text}})" : ""}</span>
-            <textarea className="input mt-1" rows={3} value={form.front || ""} onChange={(e) => set("front", e.target.value)} />
+            <textarea dir="auto" className="input mt-1" rows={3} value={form.front || ""} onChange={(e) => set("front", e.target.value)} />
           </label>
           {form.type !== "cloze" && (
             <label className="block"><span className="text-sm font-medium">Answer / back{form.type === "list" ? " (one item per line)" : ""}</span>
-              <textarea className="input mt-1" rows={3} value={form.back || ""} onChange={(e) => set("back", e.target.value)} />
+              <textarea dir="auto" className="input mt-1" rows={3} value={form.back || ""} onChange={(e) => set("back", e.target.value)} />
             </label>
           )}
           <label className="block"><span className="text-sm font-medium">Explanation — why it&apos;s correct (optional)</span>
-            <textarea className="input mt-1" rows={2} value={form.extra || ""} onChange={(e) => set("extra", e.target.value)} />
+            <textarea dir="auto" className="input mt-1" rows={2} value={form.extra || ""} onChange={(e) => set("extra", e.target.value)} />
           </label>
           <label className="block"><span className="text-sm font-medium">Mnemonic (optional)</span>
-            <textarea className="input mt-1" rows={2} value={form.mnemonic || ""} onChange={(e) => set("mnemonic", e.target.value)} />
+            <textarea dir="auto" className="input mt-1" rows={2} value={form.mnemonic || ""} onChange={(e) => set("mnemonic", e.target.value)} />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block"><span className="text-sm font-medium">Tags (comma-separated)</span>
-              <input className="input mt-1" value={form.tags || ""} onChange={(e) => set("tags", e.target.value)} />
+              <input dir="auto" className="input mt-1" value={form.tags || ""} onChange={(e) => set("tags", e.target.value)} />
             </label>
             <label className="block"><span className="text-sm font-medium">Source (optional)</span>
-              <input className="input mt-1" value={form.source || ""} onChange={(e) => set("source", e.target.value)} />
+              <input dir="auto" className="input mt-1" value={form.source || ""} onChange={(e) => set("source", e.target.value)} />
             </label>
           </div>
 

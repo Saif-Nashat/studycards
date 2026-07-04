@@ -10,9 +10,14 @@ export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
-  const { text, deckId, deckName, preview } = await req.json();
+  const { text, deckId, deckName, preview } = await req.json().catch(() => ({}));
   if (!text || !String(text).trim()) {
     return NextResponse.json({ error: "Nothing to import" }, { status: 400 });
+  }
+  // Pasted card text is at most a few MB; anything bigger would only strain
+  // the parser. (.apkg decks have their own route without this limit.)
+  if (String(text).length > 10_000_000) {
+    return NextResponse.json({ error: "That paste is too large. Split it into smaller batches, or export as .apkg." }, { status: 413 });
   }
 
   const parsed = parseImport(String(text));
@@ -44,7 +49,7 @@ export async function POST(req: Request) {
     const deck = await prisma.deck.findFirst({ where: { id: targetDeckId, userId: user.id } });
     if (!deck) return NextResponse.json({ error: "Deck not found" }, { status: 404 });
   } else {
-    const name = (deckName || parsed.deckName || "Imported cards").trim();
+    const name = String(deckName || parsed.deckName || "Imported cards").trim().slice(0, 120);
     const deck = await prisma.deck.upsert({
       where: { userId_name: { userId: user.id, name } },
       update: {},
