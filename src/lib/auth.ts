@@ -55,8 +55,4 @@ export async function getUser(): Promise<SessionUser | null> {
   return verifySession(store.get(COOKIE_NAME)?.value);
 }
 
-export async function isLoggedIn(): Promise<boolean> {
-  return (await getUser()) !== null;
-}
-
 export { COOKIE_NAME };
