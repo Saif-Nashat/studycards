@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles, Lightbulb } from "lucide-react";
+import { startImport, dismissImport, useImportState } from "@/lib/importManager";
 
 interface Deck { id: string; name: string; }
 
@@ -143,60 +144,65 @@ function TextImport({ decks }: { decks: Deck[] }) {
 function ApkgImport() {
   const [file, setFile] = useState<File | null>(null);
   const [deckName, setDeckName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ added: number; deckName: string } | null>(null);
-  const [error, setError] = useState("");
+  // The import itself runs in a global manager (src/lib/importManager.ts), so
+  // leaving this page doesn't interrupt it — come back (or watch the floating
+  // pill on other pages) and the progress is still here.
+  const state = useImportState();
+  const busy = state.status === "running";
+  const progress = state.status === "running" ? state.progress : null;
+  const result = state.status === "done" ? state.result : null;
+  const error =
+    state.status === "error"
+      ? state.addedSoFar > 0
+        ? `Imported ${state.addedSoFar} cards, then stopped: ${state.message}`
+        : state.message
+      : "";
 
-  async function upload() {
-    if (!file) return;
-    setError(""); setResult(null); setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      if (deckName.trim()) fd.append("deckName", deckName.trim());
-      const res = await fetch("/api/import/apkg", { method: "POST", body: fd });
-      // The server always answers with JSON, but guard against an empty/HTML
-      // response (e.g. a crash or timeout) so we never show a blank error.
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data) {
-        setError(data?.error || `Upload failed (server said ${res.status}). The deck may be too large.`);
-        return;
-      }
-      setResult(data);
-    } catch {
-      // Network dropped / upload interrupted — without this the button would
-      // spin forever, which is exactly the "infinite upload" we're fixing.
-      setError("Upload was interrupted. Check your connection and try again — large decks can take a minute.");
-    } finally {
-      setBusy(false);
-    }
+  function upload() {
+    if (!file || busy) return;
+    // The deck is unpacked and its images shrunk right here in the browser,
+    // then uploaded in small pieces — hosting caps request bodies at ~4.5MB,
+    // so a 100MB+ deck could never be posted whole (it got a bare 413).
+    startImport(file, deckName.trim());
   }
 
   return (
     <div className="space-y-4">
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Download free decks from <b>ankiweb.net/shared</b> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own image-rich decks (UWorld, etc.) — pictures are imported too. Big decks (100MB+) are fine; the upload just takes a minute. If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
+        <span>Download free decks from <b>ankiweb.net/shared</b> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own image-rich decks (UWorld, etc.) — pictures are imported too. Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
       </div>
 
       <div className="card-surface p-5 space-y-3">
         <label className="btn btn-ghost cursor-pointer w-full justify-center py-6 border-dashed">
           <FileUp size={18} /> {file ? file.name : "Choose a .apkg file"}
-          <input type="file" accept=".apkg" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <input type="file" accept=".apkg" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); dismissImport(); }} />
         </label>
         <label className="block">
           <span className="text-sm font-medium">Deck name (optional — defaults to the file name)</span>
           <input className="input mt-1" value={deckName} onChange={(e) => setDeckName(e.target.value)} placeholder="e.g. USMLE Step 1 — AnKing" />
         </label>
         <button onClick={upload} className="btn btn-primary" disabled={busy || !file}>
-          {busy ? <><Loader2 className="animate-spin" size={16} /> Reading deck (large decks take a moment)…</> : <><Upload size={16} /> Import deck</>}
+          {busy ? (
+            <><Loader2 className="animate-spin" size={16} /> {progress?.phase === "cards" ? `Importing ${progress.done.toLocaleString()} / ${progress.total.toLocaleString()} cards…` : "Reading deck…"}</>
+          ) : (
+            <><Upload size={16} /> Import deck</>
+          )}
         </button>
+        {busy && progress?.phase === "cards" && (
+          <div className="h-1.5 rounded-full bg-[var(--color-line)] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[var(--color-brand)] transition-[width] duration-300"
+              style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {error && <div className="card-surface p-4 text-[var(--color-again)] text-sm">{error}</div>}
       {result && (
         <div className="card-surface p-5 fade-up" style={{ background: "var(--color-tint)", borderColor: "var(--color-brand)" }}>
-          <p className="flex items-center gap-2 font-semibold text-[var(--color-brand)]"><CheckCircle2 size={18} /> Imported {result.added} cards into &quot;{result.deckName}&quot;!</p>
+          <p className="flex items-center gap-2 font-semibold text-[var(--color-brand)]"><CheckCircle2 size={18} /> Imported {result.added} cards into &quot;{result.deckName}&quot;! {result.skipped > 0 && `(${result.skipped} empty or duplicate cards skipped)`}</p>
           <Link href="/" className="btn btn-primary mt-3">Go study</Link>
         </div>
       )}

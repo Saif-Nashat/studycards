@@ -5,6 +5,7 @@ import NavBar from "@/components/NavBar";
 import StorageBanner from "@/components/StorageBanner";
 import Tutorial from "@/components/Tutorial";
 import Spotlight from "@/components/Spotlight";
+import ImportStatusPill from "@/components/ImportStatusPill";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -92,6 +93,8 @@ export default function RootLayout({
         <StorageBanner />
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
         <Tutorial />
+        {/* Deck imports keep running across page changes; this shows their progress. */}
+        <ImportStatusPill />
       </body>
     </html>
   );

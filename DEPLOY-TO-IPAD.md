@@ -74,13 +74,10 @@ Open that link in Safari, log in with your `APP_PASSWORD`, and add it to your Ho
 ---
 
 ## Loading big USMLE decks when hosted
-Very large `.apkg` files can be too big to upload through the website. To load a big deck
-into your **cloud** database:
-1. On the laptop, set `.env`'s `DATABASE_URL` to your Neon string (as in Step 3).
-2. Start the app locally and import the big `.apkg` as usual — it writes straight into the
-   cloud database, so it instantly appears on your iPad too.
-
-Small claude.ai card imports work fine directly on the website.
+Big `.apkg` files (100MB+) import directly on the website: the deck is unpacked in your
+browser and uploaded in small pieces, so the host's upload limit never gets in the way.
+It just takes a few minutes for a huge deck — keep the tab open until it finishes.
+(If an import is interrupted, run it again — cards that already made it in are skipped.)
 
 ---
 

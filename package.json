@@ -10,9 +10,10 @@
     "test": "node --test scripts/*.test.ts",
     "seed": "node scripts/seed.mjs",
     "backup": "node scripts/backup.mjs",
+    "reencode": "node scripts/reencode-images.mjs",
     "users": "node scripts/setup-users.mjs",
     "setup": "prisma generate && prisma db push && node scripts/setup-users.mjs && node scripts/seed.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && node scripts/copy-sqljs-wasm.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

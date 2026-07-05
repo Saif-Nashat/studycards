@@ -3,11 +3,14 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     // This app uses a proxy (proxy.ts) for login. When a proxy is present,
-    // Next.js buffers each request body in memory and — by default — caps it at
-    // 10MB, silently truncating anything larger. Real Anki decks (.apkg) bundle
-    // their images and routinely run 100MB+, so without this the upload arrives
-    // corrupted (the zip's index lives at the END of the file) and never imports.
-    proxyClientMaxBodySize: "500mb",
+    // Next.js buffers each request body in memory and — by default — caps it
+    // at 10MB, silently truncating anything larger. Note this only governs the
+    // Next server itself (local dev / self-hosting): Vercel rejects bodies
+    // over ~4.5MB at the platform level regardless, which is why .apkg decks
+    // are parsed in the browser and uploaded in small batches (see
+    // src/lib/apkgClient.ts). Kept above the 10MB text-import cap so a maximal
+    // paste still gets the route's friendly error instead of a truncated body.
+    proxyClientMaxBodySize: "16mb",
   },
 
   // Baseline security headers for every response.

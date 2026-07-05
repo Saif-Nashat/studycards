@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue } from "framer-motion";
 import { X, ArrowRight, ArrowLeft, Check, GraduationCap, Sparkles } from "lucide-react";
 
 // An interactive, cross-page walkthrough. Instead of a static slideshow it
@@ -184,17 +184,36 @@ export default function Tutorial() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(0);
-  const [rect, setRect] = useState<Rect | null>(null);
-  const [settled, setSettled] = useState(false); // target found (or given up) for current step
+  const [step, setStep] = useState(0);       // the step we're heading to
+  const [shownStep, setShownStep] = useState(0); // the step the card is showing — advances once its page/target is ready
+  const [rect, setRect] = useState<Rect | null>(null); // spotlight rect at settle time; drives card placement only
   const targetRef = useRef<HTMLElement | null>(null);
+
+  // Spotlight geometry lives in motion values, not React state. Touch scrolling
+  // fires dozens of events per second; re-rendering and re-targeting a spring on
+  // each one is exactly the phone jank users feel. Motion values move the hole
+  // as a pure transform (compositor work, no re-render, no repaint of the huge
+  // dimming shadow).
+  const sx = useMotionValue(0);
+  const sy = useMotionValue(0);
+  const sw = useMotionValue(0);
+  const sh = useMotionValue(0);
+  const glides = useRef<{ stop: () => void }[]>([]);
+  const hadSpot = useRef(false); // was a spotlight visible before this step? (glide vs snap)
+
+  const stopGlides = useCallback(() => {
+    for (const g of glides.current) g.stop();
+    glides.current = [];
+  }, []);
 
   const close = useCallback((markSeen: boolean) => {
     if (markSeen) { try { localStorage.setItem(SEEN_KEY, "1"); } catch { /* ignore */ } }
     setOpen(false);
     setRect(null);
     targetRef.current = null;
-  }, []);
+    hadSpot.current = false;
+    stopGlides();
+  }, [stopGlides]);
 
   // Auto-open on first ever visit (once localStorage says otherwise, never again).
   // Guarded by a ref: this effect re-runs on every route change (pathname is a
@@ -210,24 +229,25 @@ export default function Tutorial() {
     // Post-mount on purpose: the server renders the tour closed, so reading
     // localStorage must wait until after hydration to avoid a mismatch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!seen) { setStep(0); setOpen(true); }
+    if (!seen) { setStep(0); setShownStep(0); setOpen(true); }
   }, [pathname]);
 
   // Re-open on demand (from the Settings button).
   useEffect(() => {
-    function onOpen() { setStep(0); setOpen(true); }
+    function onOpen() { setStep(0); setShownStep(0); setRect(null); setOpen(true); }
     window.addEventListener(OPEN_TUTORIAL_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_TUTORIAL_EVENT, onOpen);
   }, []);
 
   // The heart of the tour: on each step, navigate to the right page, wait for
-  // the target element to exist, scroll it into view and measure it.
+  // the target element to exist, scroll it into view and measure it. The card
+  // keeps showing the PREVIOUS step (fully readable) until all that is done,
+  // then flips — so a slow page load never shows a half-faded "hanging" card.
   useEffect(() => {
     if (!open) return;
     const s = STEPS[step];
     if (!s) return;
     let cancelled = false;
-    setSettled(false);
 
     (async () => {
       if (pathname !== s.route) {
@@ -235,50 +255,98 @@ export default function Tutorial() {
         return; // pathname change re-runs this effect on arrival
       }
       if (!s.selector) {
-        setRect(null); targetRef.current = null; setSettled(true);
+        targetRef.current = null;
+        hadSpot.current = false;
+        setRect(null);
+        setShownStep(step);
         return;
       }
       const el = await waitFor(s.selector);
       if (cancelled) return;
       if (!el) {
         // Target missing (e.g. empty account) — fall back to a centered card.
-        setRect(null); targetRef.current = null; setSettled(true);
+        targetRef.current = null;
+        hadSpot.current = false;
+        setRect(null);
+        setShownStep(step);
         return;
       }
-      // Point the scroll-listener at the new element BEFORE scrolling, so the
-      // spotlight stays glued to it while the page moves.
-      targetRef.current = el;
-      const r0 = el.getBoundingClientRect();
-      setRect({ top: r0.top - PAD, left: r0.left - PAD, width: r0.width + PAD * 2, height: r0.height + PAD * 2 });
+      // Detach the scroll-follower while we glide to the new target — it snaps
+      // the spotlight to the element's live position, which would cut the
+      // glide animation short.
+      targetRef.current = null;
       el.scrollIntoView({ block: "center" });
-      // Let the scroll settle before fading the card fully in.
+      // Let the scroll and the page's entrance animations settle, then measure.
       setTimeout(() => {
         if (cancelled) return;
-        const r = el.getBoundingClientRect();
-        setRect({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 });
-        setSettled(true);
+        const r0 = el.getBoundingClientRect();
+        const r = { top: r0.top - PAD, left: r0.left - PAD, width: r0.width + PAD * 2, height: r0.height + PAD * 2 };
+        stopGlides();
+        if (hadSpot.current) {
+          // Size snaps (resizing repaints the full-screen dim shadow, so keep
+          // it to a single frame); position glides on the compositor.
+          sw.set(r.width); sh.set(r.height);
+          glides.current = [
+            animate(sx, r.left, { type: "spring", stiffness: 300, damping: 30 }),
+            animate(sy, r.top, { type: "spring", stiffness: 300, damping: 30 }),
+          ];
+        } else {
+          sx.set(r.left); sy.set(r.top); sw.set(r.width); sh.set(r.height);
+        }
+        hadSpot.current = true;
+        targetRef.current = el;
+        setRect(r);
+        setShownStep(step);
       }, 250);
     })();
 
     return () => { cancelled = true; };
-  }, [open, step, pathname, router]);
+  }, [open, step, pathname, router, stopGlides, sx, sy, sw, sh]);
 
-  // Keep the spotlight glued to its element through resizes/scrolls.
+  // Keep the spotlight glued to its element while the user scrolls — straight
+  // into the motion values (one rAF per frame, no re-render, no spring
+  // re-target: that per-event work was the phone jank). The card deliberately
+  // does NOT follow scroll: it was placed when the step settled, and pinning it
+  // keeps it on-screen no matter how far the user scrolls — following the
+  // element used to walk it right off the viewport.
   useEffect(() => {
     if (!open) return;
-    function remeasure() {
-      const el = targetRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      setRect({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 });
+    let raf = 0;
+    function follow() {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const el = targetRef.current;
+        if (!el) return;
+        stopGlides();
+        const r = el.getBoundingClientRect();
+        sx.set(r.left - PAD); sy.set(r.top - PAD);
+        sw.set(r.width + PAD * 2); sh.set(r.height + PAD * 2);
+      });
     }
-    window.addEventListener("resize", remeasure);
-    window.addEventListener("scroll", remeasure, true);
+    // A resize (rotation, split view, window drag) can genuinely invalidate
+    // the card's placement, so re-derive it then — debounced, because iOS
+    // fires resize continuously while the URL bar collapses mid-scroll.
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    function onResize() {
+      follow();
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const el = targetRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        setRect({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 });
+      }, 150);
+    }
+    window.addEventListener("scroll", follow, { capture: true, passive: true });
+    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", remeasure);
-      window.removeEventListener("scroll", remeasure, true);
+      window.removeEventListener("scroll", follow, true);
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(raf);
+      clearTimeout(resizeTimer);
     };
-  }, [open]);
+  }, [open, stopGlides, sx, sy, sw, sh]);
 
   // Keyboard navigation while open.
   useEffect(() => {
@@ -295,11 +363,16 @@ export default function Tutorial() {
   if (pathname === "/login") return null;
 
   const s = STEPS[step];
+  const sShown = STEPS[shownStep];
   const isLast = step === STEPS.length - 1;
 
   // Where the explanation card goes: under the spotlight if there's room,
   // above it otherwise; centered when nothing is spotlit. On phones it's a
   // bottom sheet so it never covers the highlighted element's context.
+  // Every branch is clamped to the viewport — the target can sit partly
+  // off-screen (or end up there after a rotation), and the card must never
+  // follow it out.
+  const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
   const isPhone = typeof window !== "undefined" && window.innerWidth < 640;
   let cardStyle: React.CSSProperties;
   if (!rect) {
@@ -313,14 +386,14 @@ export default function Tutorial() {
     const below = rect.top + rect.height + 16;
     const spaceBelow = vh - below;
     const CARD_EST = 300;
-    if (spaceBelow > CARD_EST) cardStyle = { top: Math.min(below, vh - 40), left: "50%", transform: "translateX(-50%)" };
-    else if (rect.top > CARD_EST) cardStyle = { bottom: vh - rect.top + 16, left: "50%", transform: "translateX(-50%)" };
+    if (spaceBelow > CARD_EST) cardStyle = { top: clamp(below, 16, vh - CARD_EST), left: "50%", transform: "translateX(-50%)" };
+    else if (rect.top > CARD_EST) cardStyle = { bottom: clamp(vh - rect.top + 16, 16, vh - CARD_EST), left: "50%", transform: "translateX(-50%)" };
     else cardStyle = { left: "50%", bottom: "1rem", transform: "translateX(-50%)" };
   }
 
   return (
     <AnimatePresence>
-      {open && s && (
+      {open && s && sShown && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-[70]"
@@ -330,19 +403,22 @@ export default function Tutorial() {
           <div className="absolute inset-0" onClick={() => {}} />
 
           {/* Spotlight: a rounded cutout that glides between targets. The huge
-              box-shadow paints the dim layer everywhere except the hole. */}
+              box-shadow paints the dim layer everywhere except the hole. Its
+              position/size come straight from motion values (x/y are
+              transforms), so scrolling moves it on the compositor without
+              re-rendering or repainting the shadow. */}
           {rect ? (
             <motion.div
-              className="absolute rounded-2xl pointer-events-none"
-              initial={false}
-              animate={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="absolute top-0 left-0 rounded-2xl pointer-events-none"
               style={{
+                x: sx, y: sy, width: sw, height: sh,
                 boxShadow: "0 0 0 9999px rgba(2, 12, 6, 0.6), 0 0 0 2px color-mix(in srgb, var(--color-mint) 70%, transparent), 0 0 24px -2px var(--shadow-glow)",
               }}
             />
           ) : (
-            <div className="absolute inset-0 bg-[rgba(2,12,6,0.6)] backdrop-blur-[2px]" />
+            // No backdrop-blur here on purpose: blurring the whole page while
+            // the overlay fades is a big paint cost on phones.
+            <div className="absolute inset-0 bg-[rgba(2,12,6,0.65)]" />
           )}
 
           {/* The step card. Positioning lives on a plain wrapper div: the card
@@ -352,9 +428,9 @@ export default function Tutorial() {
               (most visibly on phones). */}
           <div className="fixed w-[calc(100vw-2rem)] max-w-md z-10" style={cardStyle}>
           <motion.div
-            key={step}
+            key={shownStep}
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
-            animate={{ opacity: settled || !s.selector ? 1 : 0.4, y: 0, scale: 1 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
             className="card-surface gradient-ring p-5 md:p-6"
             onClick={(e) => e.stopPropagation()}
@@ -362,16 +438,16 @@ export default function Tutorial() {
             <button onClick={() => close(true)} className="absolute top-3.5 right-3.5 text-[var(--color-muted)] hover:text-[var(--color-ink)]" title="Close tour"><X size={18} /></button>
 
             <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-[var(--color-muted)] mb-2.5">
-              <Sparkles size={13} className="text-[var(--color-brand)]" /> GUIDED TOUR · {step + 1} / {STEPS.length}
+              <Sparkles size={13} className="text-[var(--color-brand)]" /> GUIDED TOUR · {shownStep + 1} / {STEPS.length}
             </div>
 
             <h2 className="text-lg font-bold leading-tight flex items-center gap-2">
-              {step === 0 && <span className="logo-badge grid place-items-center w-8 h-8 rounded-xl text-white shrink-0"><GraduationCap size={16} /></span>}
-              {s.title}
+              {shownStep === 0 && <span className="logo-badge grid place-items-center w-8 h-8 rounded-xl text-white shrink-0"><GraduationCap size={16} /></span>}
+              {sShown.title}
             </h2>
 
             <div className="mt-2.5 text-sm text-[var(--color-ink)]/90 leading-relaxed max-h-[38vh] overflow-y-auto">
-              {s.body}
+              {sShown.body}
             </div>
 
             {/* Progress dots */}
@@ -383,8 +459,8 @@ export default function Tutorial() {
                   aria-label={`Go to step ${i + 1}`}
                   className="h-1.5 rounded-full transition-all"
                   style={{
-                    width: i === step ? 20 : 6,
-                    background: i === step ? "var(--color-brand)" : "var(--color-line)",
+                    width: i === shownStep ? 20 : 6,
+                    background: i === shownStep ? "var(--color-brand)" : "var(--color-line)",
                   }}
                 />
               ))}
