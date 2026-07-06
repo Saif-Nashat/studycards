@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist, Fraunces, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
@@ -75,6 +76,10 @@ export const viewport: Viewport = {
 // next/docs preventing-flash-before-hydration.
 const THEME_INIT = `(function(){try{var t=localStorage.getItem("theme");if(!t){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`;
 
+// Microsoft Clarity — session recording + heatmaps. The snippet self-injects
+// the clarity.ms tag; afterInteractive keeps it off the critical path.
+const CLARITY_INIT = `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "xi9dsxufzy");`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -95,6 +100,7 @@ export default function RootLayout({
         <Tutorial />
         {/* Deck imports keep running across page changes; this shows their progress. */}
         <ImportStatusPill />
+        <Script id="microsoft-clarity" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: CLARITY_INIT }} />
       </body>
     </html>
   );
