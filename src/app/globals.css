@@ -442,3 +442,28 @@ html[data-theme="dark"] .grain { opacity: 0.07; }
 }
 .rt-tool:hover { background: var(--color-surface-2); }
 .rt-tool[data-active="true"] { background: var(--color-chip-bg); border-color: var(--color-line); color: var(--color-chip-ink); }
+
+/* ---- Phone performance ----
+   The decorative atmosphere is the main cause of phone jank: three large
+   blur(90px) blobs animating forever, a full-screen grain overlay, and a
+   backdrop-blur nav that the browser re-rasterises on every scroll frame.
+   On small screens keep the look but cut the per-frame GPU cost: freeze the
+   blobs (static, less blur), drop the grain, and make the nav a solid-ish
+   surface instead of live glass. Kept at the end of the file so these
+   overrides win over the base rules above at equal specificity. */
+@media (max-width: 640px) {
+  .aurora .a1,
+  .aurora .a2,
+  .aurora .a3 {
+    animation: none;
+    filter: blur(55px);
+    opacity: 0.5;
+  }
+  .grain { display: none; }
+  .nav-island {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  }
+  .eyebrow { backdrop-filter: none; }
+}

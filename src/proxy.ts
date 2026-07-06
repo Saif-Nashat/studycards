@@ -19,8 +19,10 @@ function secretKey() {
 }
 
 // Crawler/share assets must stay reachable without a session: robots and the
-// sitemap for search engines, icon and opengraph-image for link previews.
-const PUBLIC_PATHS = ["/login", "/api/login", "/robots.txt", "/sitemap.xml", "/icon", "/opengraph-image", "/favicon.ico"];
+// sitemap for search engines, icon and opengraph-image for link previews. The
+// login API stays public too (it's how you sign in); the login *page* is handled
+// separately below so we can redirect already-signed-in users away from it.
+const PUBLIC_PATHS = ["/api/login", "/robots.txt", "/sitemap.xml", "/icon", "/opengraph-image", "/favicon.ico"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -40,6 +42,19 @@ export async function proxy(req: NextRequest) {
     } catch {
       valid = false;
     }
+  }
+
+  // The login page: signed-out visitors see the form, but anyone who already has
+  // a valid session is sent on to the app. Without this, a bookmark, a history
+  // entry, or an iOS back-swipe drops a logged-in user on the login form — which
+  // reads as "it logged me out" even though the session is fine.
+  if (pathname === "/login") {
+    if (valid) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
   }
 
   if (!valid) {

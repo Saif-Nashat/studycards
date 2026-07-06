@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Check, Loader2, NotebookPen,
+  Check, Loader2, NotebookPen, AlertTriangle, CloudOff, RefreshCw,
   Bold, Italic, Underline, Strikethrough,
   Heading1, Heading2, List, ListOrdered, Quote, RemoveFormatting,
   Baseline, Highlighter, Type, AlignLeft, AlignCenter, AlignRight,
@@ -17,6 +17,29 @@ import {
 
 const PLACEHOLDER =
   "Write anything here — summaries, things to look up, mnemonics, reminders. Use the toolbar to add headings, bold, and lists. It stays across all your sessions.";
+
+// Mirror the server ceiling in /api/notebook so we fail fast with a clear
+// message instead of firing a doomed multi-MB request from a phone.
+const MAX_NOTEBOOK_CHARS = 2_000_000;
+// Cap pasted images so a couple of phone screenshots can't blow past the limit.
+const PASTED_IMAGE_MAX_DIM = 1280;
+
+// Shrink a pasted image file to a data URI small enough to live in a note.
+async function compressImageToDataUrl(file: File): Promise<string> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, PASTED_IMAGE_MAX_DIM / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) { bmp.close?.(); return ""; }
+  ctx.drawImage(bmp, 0, 0, w, h);
+  bmp.close?.();
+  // WebP is far smaller; browsers that can't encode it fall back to PNG.
+  return canvas.toDataURL("image/webp", 0.7);
+}
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -64,12 +87,17 @@ const FONT_SIZES = [
 
 export default function NotebookEditor({ compact = false }: { compact?: boolean }) {
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [, force] = useState(0); // re-render to refresh toolbar active states
   // Which colour popover (if any) is open: text colour, highlight, or font size.
   const [openMenu, setOpenMenu] = useState<null | "text" | "highlight" | "size">(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(true);
+  // Toolbar active-state refreshes coalesce into one per frame — recomputing
+  // ~15 queryCommandState calls on every keystroke is real jank on phones.
+  const refreshRaf = useRef(0);
   // The selection is lost when a toolbar control steals focus, so we stash the
   // active Range on mousedown and restore it before applying a colour/size.
   const savedRange = useRef<Range | null>(null);
@@ -89,33 +117,102 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
     sel.addRange(r);
   }
 
-  // Load once and seed the editor's HTML directly (so the caret never jumps).
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/notebook")
-      .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return;
-        if (editorRef.current) editorRef.current.innerHTML = toHtml(d.content || "");
-        setLoading(false);
-      });
-    return () => { cancelled = true; };
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (refreshRaf.current) cancelAnimationFrame(refreshRaf.current);
+      if (timer.current) clearTimeout(timer.current);
+    };
   }, []);
 
+  // Load the notebook and seed the editor's HTML directly (so the caret never
+  // jumps). On failure we must NOT hand the editor an empty document — the next
+  // autosave would then overwrite the real notes with nothing. Show a retry.
+  const load = useCallback(() => {
+    fetch("/api/notebook")
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`load failed: ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        if (!mounted.current) return;
+        if (editorRef.current) editorRef.current.innerHTML = toHtml(d.content || "");
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!mounted.current) return;
+        setLoadFailed(true);
+        setLoading(false);
+      });
+  }, []);
+
+  // Initial fetch: the editor starts in its loading state, so `load` only needs
+  // to set state from inside its async callbacks (no synchronous setState here).
+  useEffect(() => { load(); }, [load]);
+
+  // Retry button: reset to the loading state, then fetch again.
+  const retryLoad = useCallback(() => {
+    setLoading(true);
+    setLoadFailed(false);
+    load();
+  }, [load]);
+
   const save = useCallback(() => {
-    setStatus("saving");
+    // Skip the flicker of re-rendering "Saving…" on every keystroke.
+    setStatus((prev) => (prev === "saving" ? prev : "saving"));
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       const html = editorRef.current?.innerHTML ?? "";
-      await fetch("/api/notebook", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: html }),
-      }).catch(() => {});
-      setStatus("saved");
-      setTimeout(() => setStatus("idle"), 1500);
+      if (html.length > MAX_NOTEBOOK_CHARS) {
+        if (mounted.current) setStatus("error");
+        return;
+      }
+      try {
+        const res = await fetch("/api/notebook", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: html }),
+        });
+        if (!mounted.current) return;
+        // The old code always claimed "Saved" even on a rejected save (over the
+        // size limit, or Vercel's request cap) — the note was silently lost.
+        setStatus(res.ok ? "saved" : "error");
+        if (res.ok) setTimeout(() => { if (mounted.current) setStatus("idle"); }, 1500);
+      } catch {
+        if (mounted.current) setStatus("error");
+      }
     }, 700);
   }, []);
+
+  // Coalesced toolbar refresh (see refreshRaf above).
+  const refreshToolbar = useCallback(() => {
+    if (refreshRaf.current) return;
+    refreshRaf.current = requestAnimationFrame(() => {
+      refreshRaf.current = 0;
+      force((n) => n + 1);
+    });
+  }, []);
+
+  // Compress pasted images before they enter the note; let text/HTML paste as
+  // normal.
+  const onPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const imageItem = Array.from(items).find((it) => it.kind === "file" && it.type.startsWith("image/"));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    compressImageToDataUrl(file)
+      .then((url) => {
+        if (!url || !editorRef.current) return;
+        editorRef.current.focus();
+        document.execCommand("insertHTML", false, `<img src="${url}" style="max-width:100%">`);
+        save();
+      })
+      .catch(() => { /* drop the paste rather than bloat the note past the limit */ });
+  }, [save]);
 
   // Apply a formatting command to the current selection, then keep focus + save.
   function run(cmd: Cmd) {
@@ -180,6 +277,7 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
         <span className="text-xs text-[var(--color-muted)] flex items-center gap-1">
           {status === "saving" && <><Loader2 size={12} className="animate-spin" /> Saving…</>}
           {status === "saved" && <><Check size={12} className="text-[var(--color-good)]" /> Saved</>}
+          {status === "error" && <span className="text-[var(--color-again)] flex items-center gap-1"><AlertTriangle size={12} /> Not saved — note may be too large</span>}
         </span>
       </div>
 
@@ -244,22 +342,34 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
         </MenuButton>
       </div>
 
-      {loading ? (
-        <div className="grid place-items-center py-16 text-[var(--color-muted)]"><Loader2 className="animate-spin" /></div>
+      {loadFailed ? (
+        <div className="grid place-items-center flex-1 text-center px-4">
+          <div>
+            <CloudOff size={26} className="mx-auto mb-2 text-[var(--color-muted)]" />
+            <p className="text-sm text-[var(--color-muted)] mb-3 max-w-xs">Couldn&apos;t load your notebook. Your notes are safe on the server — check your connection and try again.</p>
+            <button type="button" onClick={retryLoad} className="btn btn-primary py-2"><RefreshCw size={15} /> Try again</button>
+          </div>
+        </div>
       ) : (
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          dir="auto"
-          role="textbox"
-          aria-multiline="true"
-          data-placeholder={PLACEHOLDER}
-          onInput={save}
-          onKeyUp={() => force((n) => n + 1)}
-          onMouseUp={() => force((n) => n + 1)}
-          className={`rich-text input font-sans overflow-y-auto w-full flex-1 ${compact ? "min-h-[55vh]" : "min-h-[65vh]"}`}
-        />
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          {loading && (
+            <div className="absolute inset-0 z-10 grid place-items-center text-[var(--color-muted)] bg-[var(--color-surface)]"><Loader2 className="animate-spin" /></div>
+          )}
+          <div
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            dir="auto"
+            role="textbox"
+            aria-multiline="true"
+            data-placeholder={PLACEHOLDER}
+            onInput={save}
+            onKeyUp={refreshToolbar}
+            onMouseUp={refreshToolbar}
+            onPaste={onPaste}
+            className={`rich-text input font-sans overflow-y-auto w-full flex-1 ${compact ? "min-h-[55vh]" : "min-h-[65vh]"}`}
+          />
+        </div>
       )}
     </div>
   );

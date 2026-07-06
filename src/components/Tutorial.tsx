@@ -27,18 +27,7 @@ const STEPS: Step[] = [
     route: "/",
     title: "Welcome to MediCards 👋",
     body: (
-      <>
-        <p>MediCards helps you learn and <b>remember</b> using <b>spaced repetition</b> — each card comes back right before you&apos;d forget it, so facts actually stick.</p>
-        <p className="mt-2">This tour walks you through the app <b>page by page</b>, pointing at the real buttons as we go. Takes ~2 minutes — skip anytime and replay it later from <b>Settings</b>.</p>
-      </>
-    ),
-  },
-  {
-    route: "/",
-    selector: "#tour-stats",
-    title: "Your day at a glance",
-    body: (
-      <p>These four numbers greet you every day: cards <b>due</b> for review, brand-new cards waiting, what you&apos;ve <b>reviewed today</b>, and your hard/flagged pile.</p>
+      <p>MediCards helps you <b>remember</b> using <b>spaced repetition</b> — each card comes back right before you&apos;d forget it, so facts actually stick. This quick tour points out the essentials — skip anytime and replay it later from <b>Settings</b>.</p>
     ),
   },
   {
@@ -46,7 +35,7 @@ const STEPS: Step[] = [
     selector: "#tour-study-cta",
     title: "One tap starts your day",
     body: (
-      <p>This button studies <b>everything due today</b> across all decks — the fastest way in. Most days, this is the only button you need.</p>
+      <p>The numbers up top show what&apos;s <b>due</b>, what&apos;s <b>new</b>, and what you&apos;ve done today. This button studies <b>everything due</b> in one tap — most days, it&apos;s the only button you need.</p>
     ),
   },
   {
@@ -54,58 +43,26 @@ const STEPS: Step[] = [
     selector: "#tour-decks",
     title: "Your decks",
     body: (
-      <p>Every deck shows its due / new / total counts and has its own <b>Study</b> button. Create decks here, or delete ones you&apos;re done with (that also frees their storage).</p>
+      <p>Every deck shows its due / new / total counts and has its own <b>Study</b> button. Create decks here, or delete ones you&apos;re done with to free their storage.</p>
     ),
   },
   {
     route: "/study",
     selector: "#tour-test-builder",
-    title: "Build a custom test",
+    title: "Study & rate cards",
     body: (
       <>
-        <p>The <b>Study</b> page is a test builder: pick <b>subjects</b>, choose which cards (new, unanswered, flagged…), and how many.</p>
-        <p className="mt-2">Below, you can add a <b>timer</b> (stopwatch or Pomodoro) and a session <b>goal</b> — hit it and you get a little celebration. 🎯</p>
+        <p>The <b>Study</b> page builds custom tests — pick subjects and card types, add an optional timer and goal.</p>
+        <p className="mt-2">In a session, press <b>Space</b> to reveal, then rate <b>Again / Hard / Good / Easy</b> (keys <b>1–4</b>) — honest ratings set when each card returns. <b>F</b> flags a card; Hard and flagged cards collect in the <b>Hard</b> pile to drill later.</p>
       </>
-    ),
-  },
-  {
-    route: "/study",
-    title: "Rating cards — the core habit",
-    body: (
-      <>
-        <p>During study: press <b>Show answer</b> (Space), then rate yourself honestly:</p>
-        <ul className="mt-2 space-y-1 text-sm">
-          <li><span className="font-semibold text-[var(--color-again)]">Again</span> — forgot; comes back in ~1 minute.</li>
-          <li><span className="font-semibold text-[var(--color-hard)]">Hard</span> — struggled; shorter gap next time.</li>
-          <li><span className="font-semibold text-[var(--color-good)]">Good</span> — knew it; normal gap.</li>
-          <li><span className="font-semibold text-[var(--color-easy)]">Easy</span> — instant recall; much longer gap.</li>
-        </ul>
-        <p className="mt-2 text-sm text-[var(--color-muted)]">Shortcuts: <b>Space</b> reveals · <b>1–4</b> rate · <b>F</b> flags · <b>← →</b> move around.</p>
-      </>
-    ),
-  },
-  {
-    route: "/hard",
-    selector: "#tour-hard",
-    title: "Hard cards collect themselves",
-    body: (
-      <p>Cards you rate <b>Hard</b> — plus anything you <b>flag</b> — gather here automatically. It&apos;s your personal &ldquo;revisit these&rdquo; pile; drill them all in one go whenever you like.</p>
     ),
   },
   {
     route: "/insights",
     selector: "#tour-insights",
-    title: "Watch your progress grow",
+    title: "Track your progress",
     body: (
-      <p><b>Insights</b> tracks your day <b>streak</b>, reviews, and all-time accuracy — and further down, your <b>weakest topics</b> with a Drill button for each, so you always know where to focus.</p>
-    ),
-  },
-  {
-    route: "/achievements",
-    selector: "#tour-trophies",
-    title: "Earn trophies",
-    body: (
-      <p>Studying earns you <b>trophies</b> — for streaks, totals, and mastering cards. There&apos;s always a next one to chase; a daily streak is the fastest way to collect them. 🏆</p>
+      <p><b>Insights</b> tracks your <b>streak</b>, reviews, and all-time accuracy, and surfaces your <b>weakest topics</b> with a Drill button for each. Studying also earns <b>trophies</b> 🏆 — a daily streak is the fastest way to collect them.</p>
     ),
   },
   {
@@ -113,7 +70,7 @@ const STEPS: Step[] = [
     selector: "#tour-notebook",
     title: "Your notebook",
     body: (
-      <p>A personal scratchpad that <b>saves automatically</b> — summaries, mnemonics, reminders. Format with headings, lists, colour and highlights. It also slides out <b>inside study sessions</b> (the 📓 icon).</p>
+      <p>A personal scratchpad that <b>saves automatically</b> — summaries, mnemonics, reminders. It also slides out <b>inside study sessions</b> (the 📓 icon).</p>
     ),
   },
   {
@@ -121,44 +78,22 @@ const STEPS: Step[] = [
     selector: "#tour-browse",
     title: "Browse & edit everything",
     body: (
-      <p>Search and filter all your cards, <b>add your own</b>, edit, flag, or delete. The ↔ button creates a <b>reverse copy</b> of a card (answer becomes the question) so you learn facts in both directions.</p>
+      <p>Search, filter, and edit every card — or <b>add your own</b>. The ↔ button makes a <b>reverse copy</b> (answer becomes the question) so you learn facts both ways.</p>
     ),
   },
   {
     route: "/import",
     selector: "#tour-import",
-    title: "Import — from any material",
+    title: "Import from any material",
     body: (
-      <>
-        <p>Two ways in: paste <b>claude.ai cards</b> (JSON/CSV), or upload a full <b>Anki deck (.apkg)</b> — images included, free community decks like AnKing work great.</p>
-        <p className="mt-2">And it&apos;s not just medicine: <b>university slides, notes, books, languages, law, code</b> — if it fits on a flashcard, it works here. Cards can be in <b>any language</b> too — Arabic and other right-to-left scripts display correctly.</p>
-      </>
-    ),
-  },
-  {
-    route: "/settings",
-    selector: "#tour-prompt",
-    title: "The card-making prompt",
-    body: (
-      <p>Copy this ready-made prompt into <b>claude.ai</b>, paste any study material under it, and you get perfectly formatted cards back — explanations and mnemonics included. Bring the result to the Import page.</p>
-    ),
-  },
-  {
-    route: "/settings",
-    selector: "#storage",
-    title: "Your storage share",
-    body: (
-      <p>Every account owns a fixed slice of the database, so nobody can eat into your space. This panel shows what&apos;s using room and lets you free space by deleting a deck. You can also <b>replay this tour</b> from Settings anytime.</p>
+      <p>Two ways in: paste <b>claude.ai cards</b> (JSON/CSV), or upload an <b>Anki deck (.apkg)</b> — images included. <b>Settings</b> has a ready-made prompt: drop it into claude.ai with any material (slides, notes, books, any language) and paste the cards back here.</p>
     ),
   },
   {
     route: "/",
     title: "You're all set 🎉",
     body: (
-      <>
-        <p>That&apos;s everything. The golden rule of spaced repetition: <b>a little every day beats a lot once a week</b>.</p>
-        <p className="mt-2">Go ahead — study your first cards now.</p>
-      </>
+      <p>That&apos;s the tour. The golden rule: <b>a little every day beats a lot once a week</b>. Your storage share and a replay of this tour live in <b>Settings</b> — now go study your first cards.</p>
     ),
   },
 ];
@@ -200,6 +135,18 @@ export default function Tutorial() {
   const sh = useMotionValue(0);
   const glides = useRef<{ stop: () => void }[]>([]);
   const hadSpot = useRef(false); // was a spotlight visible before this step? (glide vs snap)
+  // The tour moves the browser ONLY when the user drives it (Next / Back / dots),
+  // never as a side effect of being open. pendingRoute is the page a hop we issued
+  // is heading to (so the effect waits, rather than bailing, until it arrives);
+  // freshOpen marks the instant after opening, when the tour may be sitting on a
+  // page that isn't step 0's home — there it shows the card in place instead of
+  // yanking the user or mistaking it for them leaving.
+  const pendingRoute = useRef<string | null>(null);
+  const freshOpen = useRef(false);
+  // Latest pathname / step, readable from handlers without a stale closure.
+  const pathnameRef = useRef(pathname);
+  const stepRef = useRef(step);
+  useEffect(() => { pathnameRef.current = pathname; stepRef.current = step; });
 
   const stopGlides = useCallback(() => {
     for (const g of glides.current) g.stop();
@@ -212,8 +159,23 @@ export default function Tutorial() {
     setRect(null);
     targetRef.current = null;
     hadSpot.current = false;
+    pendingRoute.current = null;
+    freshOpen.current = false;
     stopGlides();
   }, [stopGlides]);
+
+  // The one path that changes step and moves the browser. Wired to Next / Back /
+  // dots / arrow keys — an explicit user action, so it may always navigate.
+  const goToStep = useCallback((next: number) => {
+    const clamped = Math.max(0, Math.min(STEPS.length - 1, next));
+    freshOpen.current = false; // the user is driving now
+    setStep(clamped);
+    const target = STEPS[clamped];
+    if (target.route !== pathnameRef.current) {
+      pendingRoute.current = target.route;
+      router.push(target.route);
+    }
+  }, [router]);
 
   // Auto-open on first ever visit (once localStorage says otherwise, never again).
   // Guarded by a ref: this effect re-runs on every route change (pathname is a
@@ -229,12 +191,12 @@ export default function Tutorial() {
     // Post-mount on purpose: the server renders the tour closed, so reading
     // localStorage must wait until after hydration to avoid a mismatch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!seen) { setStep(0); setShownStep(0); setOpen(true); }
+    if (!seen) { setStep(0); setShownStep(0); freshOpen.current = true; setOpen(true); }
   }, [pathname]);
 
   // Re-open on demand (from the Settings button).
   useEffect(() => {
-    function onOpen() { setStep(0); setShownStep(0); setRect(null); setOpen(true); }
+    function onOpen() { setStep(0); setShownStep(0); setRect(null); freshOpen.current = true; setOpen(true); }
     window.addEventListener(OPEN_TUTORIAL_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_TUTORIAL_EVENT, onOpen);
   }, []);
@@ -251,9 +213,32 @@ export default function Tutorial() {
 
     (async () => {
       if (pathname !== s.route) {
-        router.push(s.route);
-        return; // pathname change re-runs this effect on arrival
+        if (pendingRoute.current === s.route) {
+          // Mid-hop: a Next/Back we issued is still settling — wait for arrival.
+          return;
+        }
+        if (freshOpen.current) {
+          // The tour just opened on a page that isn't this step's home. Don't
+          // move the user and don't treat it as them leaving — show the card
+          // (the welcome step has no spotlight) right where they are.
+          freshOpen.current = false;
+          targetRef.current = null;
+          hadSpot.current = false;
+          setRect(null);
+          setShownStep(step);
+          return;
+        }
+        // Not our hop and not a fresh open: the user navigated the browser
+        // themselves (back button, typed URL). Never trap them — step aside so
+        // they land where they wanted.
+        close(true);
+        return;
       }
+
+      // We're on the right page for this step.
+      pendingRoute.current = null;
+      freshOpen.current = false;
+
       if (!s.selector) {
         targetRef.current = null;
         hadSpot.current = false;
@@ -301,7 +286,7 @@ export default function Tutorial() {
     })();
 
     return () => { cancelled = true; };
-  }, [open, step, pathname, router, stopGlides, sx, sy, sw, sh]);
+  }, [open, step, pathname, stopGlides, sx, sy, sw, sh, close]);
 
   // Keep the spotlight glued to its element while the user scrolls — straight
   // into the motion values (one rAF per frame, no re-render, no spring
@@ -353,12 +338,12 @@ export default function Tutorial() {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") close(true);
-      else if (e.key === "ArrowRight") setStep((s) => Math.min(STEPS.length - 1, s + 1));
-      else if (e.key === "ArrowLeft") setStep((s) => Math.max(0, s - 1));
+      else if (e.key === "ArrowRight") goToStep(stepRef.current + 1);
+      else if (e.key === "ArrowLeft") goToStep(stepRef.current - 1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
+  }, [open, close, goToStep]);
 
   if (pathname === "/login") return null;
 
@@ -455,7 +440,7 @@ export default function Tutorial() {
               {STEPS.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => setStep(i)}
+                  onClick={() => goToStep(i)}
                   aria-label={`Go to step ${i + 1}`}
                   className="h-1.5 rounded-full transition-all"
                   style={{
@@ -468,7 +453,7 @@ export default function Tutorial() {
 
             <div className="flex items-center justify-between gap-2">
               {step > 0 ? (
-                <button onClick={() => setStep((v) => v - 1)} className="btn btn-ghost text-sm py-2"><ArrowLeft size={15} /> Back</button>
+                <button onClick={() => goToStep(step - 1)} className="btn btn-ghost text-sm py-2"><ArrowLeft size={15} /> Back</button>
               ) : (
                 <button onClick={() => close(true)} className="btn btn-ghost text-sm py-2 text-[var(--color-muted)]">Skip tour</button>
               )}
@@ -476,7 +461,7 @@ export default function Tutorial() {
               {isLast ? (
                 <button onClick={() => close(true)} className="btn btn-primary py-2"><Check size={15} /> Start studying</button>
               ) : (
-                <button onClick={() => setStep((v) => v + 1)} className="btn btn-primary py-2">Next <ArrowRight size={15} /></button>
+                <button onClick={() => goToStep(step + 1)} className="btn btn-primary py-2">Next <ArrowRight size={15} /></button>
               )}
             </div>
           </motion.div>
