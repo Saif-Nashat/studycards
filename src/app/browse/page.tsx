@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Plus, Flag, Pencil, Trash2, Loader2, X, Layers, Repeat, Bug, ImagePlus } from "lucide-react";
-import { resolveImageSrc } from "@/components/CardFace";
+import { resolveImageSrc, stripSoundTags } from "@/components/CardFace";
 
 interface Deck { id: string; name: string; }
 interface Card {
@@ -126,10 +126,10 @@ function BrowseInner() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium flex items-center gap-2">
                     {c.isLeech && <span className="chip" style={{ background: "var(--color-danger-bg)", color: "var(--color-again)" }}><Bug size={11} /> Leech</span>}
-                    <span dir="auto" className="truncate">{c.front.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, "[$1]")}</span>
+                    <span dir="auto" className="truncate">{stripSoundTags(c.front).replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, "[$1]")}</span>
                     {(c.imageFront || c.imageBack) && <ImagePlus size={13} className="text-[var(--color-muted)] shrink-0" />}
                   </p>
-                  <p dir="auto" className="text-sm text-[var(--color-muted)] truncate">{c.type === "list" ? c.back.replace(/[[\]"]/g, "") : c.back}</p>
+                  <p dir="auto" className="text-sm text-[var(--color-muted)] truncate">{c.type === "list" ? c.back.replace(/[[\]"]/g, "") : stripSoundTags(c.back)}</p>
                   <div className="flex gap-2 mt-1.5 flex-wrap">
                     {c.deck?.name && <span className="text-xs text-[var(--color-muted)]">{c.deck.name}</span>}
                     {c.tags && <span className="text-xs text-[var(--color-brand)]">{c.tags}</span>}
@@ -238,14 +238,21 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
 
           {/* Images */}
           <div className="grid grid-cols-2 gap-3">
-            {(["imageFront", "imageBack"] as const).map((side) => (
+            {(["imageFront", "imageBack"] as const).map((side) => {
+              // Imported cards can hold several media entries (newline-joined);
+              // preview the first picture — audio clips have no thumbnail.
+              const firstImage = String(form[side] ?? "").split("\n").map((s) => s.trim()).find((s) => s && !s.startsWith("snd:"));
+              return (
               <div key={side}>
                 <span className="text-sm font-medium">{side === "imageFront" ? "Image on question" : "Image on answer"}</span>
                 {form[side] ? (
                   <div className="mt-1 relative">
-                    {/* Imported cards can hold several images (newline-joined); preview the first. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={resolveImageSrc(String(form[side]).split("\n")[0])} alt="" className="rounded-lg max-h-28 border border-[var(--color-line)]" />
+                    {firstImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={resolveImageSrc(firstImage)} alt="" className="rounded-lg max-h-28 border border-[var(--color-line)]" />
+                    ) : (
+                      <div className="rounded-lg border border-[var(--color-line)] px-3 py-4 text-sm text-[var(--color-muted)]">🔊 Audio clip</div>
+                    )}
                     <button onClick={() => set(side, "")} className="absolute top-1 right-1 bg-[var(--color-surface)] rounded-full p-0.5 shadow text-[var(--color-again)]"><X size={14} /></button>
                   </div>
                 ) : (
@@ -255,7 +262,8 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
                   </label>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {isNew && form.type === "basic" && (

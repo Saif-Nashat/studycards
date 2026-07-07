@@ -52,7 +52,7 @@ export default function StoragePanel() {
       <p className="text-[var(--color-muted)] text-sm mb-4">
         The database is shared between accounts, and every account owns a fixed slice —
         yours is <b className="text-[var(--color-ink)]">{usage?.limitMb ?? 75} MB</b>, so nobody can eat into your space.
-        Images from imported decks use the most room. If your share fills up, delete a deck you no longer need.
+        Images and audio from imported decks use the most room. If your share fills up, delete a deck you no longer need.
       </p>
 
       {loading && !usage ? (
@@ -89,8 +89,8 @@ export default function StoragePanel() {
           {usage.imageBytes != null && usage.imageBytes > 0 && (
             <div className="flex items-center gap-3 border border-[var(--color-line)] rounded-xl px-3.5 py-2.5 mb-3 bg-[var(--color-tint)]">
               <div className="flex-1 min-w-0">
-                <p className="font-medium">Your image library</p>
-                <p className="text-xs text-[var(--color-muted)]">{usage.imageCount} unique images · ~{formatBytes(usage.imageBytes)} (each picture stored once across your decks)</p>
+                <p className="font-medium">Your media library</p>
+                <p className="text-xs text-[var(--color-muted)]">{usage.imageCount} unique images &amp; audio clips · ~{formatBytes(usage.imageBytes)} (each file stored once across your decks)</p>
               </div>
             </div>
           )}

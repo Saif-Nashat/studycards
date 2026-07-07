@@ -27,7 +27,9 @@ export const maxDuration = 60;
 const MAX_BODY = 4_000_000;
 const MAX_CARDS = 500;
 
-const IMG_REF = /^img:[0-9a-f]{24}$/;
+// "img:<hash>" for pictures, "snd:<hash>" for audio clips — both live in the
+// same Image store; the prefix tells the card renderer which element to use.
+const MEDIA_REF = /^(?:img|snd):[0-9a-f]{24}$/;
 const ALLOWED_MIME = new Set([
   "image/jpeg",
   "image/png",
@@ -35,17 +37,27 @@ const ALLOWED_MIME = new Set([
   "image/webp",
   "image/svg+xml",
   "image/bmp",
+  "image/avif",
+  "image/x-icon",
+  "image/tiff",
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/ogg",
+  "audio/wav",
+  "audio/flac",
+  "audio/aac",
+  "audio/3gpp",
 ]);
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-// Keep only well-formed "img:<hash>" references, one per line.
+// Keep only well-formed "img:/snd:<hash>" references, one per line.
 function cleanRefs(v: unknown): string {
   return String(v ?? "")
     .split("\n")
-    .filter((r) => IMG_REF.test(r))
+    .filter((r) => MEDIA_REF.test(r))
     .join("\n");
 }
 

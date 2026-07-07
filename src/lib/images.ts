@@ -1,21 +1,23 @@
 import { prisma } from "./prisma";
 
-// Pull the shared-image ids ("img:<id>") referenced by a card's image fields.
+// Pull the shared-media ids referenced by a card's image fields. Pictures are
+// stored as "img:<id>" and audio clips as "snd:<id>" — both live in the Image
+// table, so the GC must treat either prefix as a live reference.
 function refsIn(...fields: string[]): string[] {
   const ids: string[] = [];
   for (const f of fields) {
     if (!f) continue;
     for (const entry of f.split("\n")) {
-      const e = entry.trim();
-      if (e.startsWith("img:")) ids.push(e.slice(4));
+      const m = entry.trim().match(/^(?:img|snd):(.+)$/);
+      if (m) ids.push(m[1]);
     }
   }
   return ids;
 }
 
-// Remove images from a user's image library that none of their cards reference
+// Remove media from a user's library that none of their cards reference
 // anymore (e.g. after a deck is deleted). Returns how many were freed.
-// Scoped per user: one user's cleanup can never touch another's pictures.
+// Scoped per user: one user's cleanup can never touch another's files.
 export async function gcOrphanImages(userId: string): Promise<number> {
   const [cards, all] = await Promise.all([
     prisma.card.findMany({ where: { userId }, select: { imageFront: true, imageBack: true } }),

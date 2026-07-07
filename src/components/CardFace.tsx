@@ -23,22 +23,36 @@ export interface CardData {
   mnemonic?: string;
 }
 
-// A card can carry several images (e.g. UWorld answer screenshots), stored as
-// newline-joined entries. Each entry is either an inline data: URI (e.g. an
-// image added by hand) or a reference to the shared image store ("img:<id>"),
-// which we serve from /api/image/<id>.
+// A card can carry several media entries (e.g. UWorld answer screenshots, or
+// pronunciation/murmur audio), stored newline-joined. Each entry is either an
+// inline data: URI (e.g. an image added by hand) or a reference to the shared
+// media store — "img:<id>" for pictures, "snd:<id>" for audio — served from
+// /api/image/<id>.
 export function resolveImageSrc(entry: string): string {
-  return entry.startsWith("img:") ? `/api/image/${entry.slice(4)}` : entry;
+  const m = entry.match(/^(?:img|snd):(.+)$/);
+  return m ? `/api/image/${m[1]}` : entry;
 }
-function CardImages({ src }: { src?: string }) {
+
+// Cards imported before audio support (or via plain text) can carry literal
+// Anki "[sound:file.mp3]" markers in their text — never show those.
+export function stripSoundTags(text: string): string {
+  return text.replace(/\[sound:[^\]]*\]/gi, "");
+}
+
+function CardMedia({ src }: { src?: string }) {
   if (!src) return null;
-  const images = src.split("\n").map((s) => s.trim()).filter(Boolean);
-  if (!images.length) return null;
+  const entries = src.split("\n").map((s) => s.trim()).filter(Boolean);
+  if (!entries.length) return null;
+  const images = entries.filter((s) => !s.startsWith("snd:"));
+  const sounds = entries.filter((s) => s.startsWith("snd:"));
   return (
     <div className="space-y-3">
       {images.map((s, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img key={i} src={resolveImageSrc(s)} alt="" className="mt-4 rounded-xl max-h-72 mx-auto object-contain border border-[var(--color-line)]" />
+      ))}
+      {sounds.map((s, i) => (
+        <audio key={i} controls preload="metadata" src={resolveImageSrc(s)} className="mt-4 w-full max-w-md mx-auto block" />
       ))}
     </div>
   );
@@ -47,10 +61,11 @@ function CardImages({ src }: { src?: string }) {
 const CLOZE_RE = /\{\{c\d+::(.*?)(?:::(.*?))?\}\}/g;
 
 function clozeQuestion(text: string): string {
-  return text.replace(CLOZE_RE, (_m, _ans, hint) => (hint ? `[${hint}]` : "[ ... ]"));
+  return stripSoundTags(text).replace(CLOZE_RE, (_m, _ans, hint) => (hint ? `[${hint}]` : "[ ... ]"));
 }
 // Split cloze text into chunks, marking which chunks were the hidden answers.
-function clozeSegments(text: string): { text: string; answer: boolean }[] {
+function clozeSegments(raw: string): { text: string; answer: boolean }[] {
+  const text = stripSoundTags(raw);
   const segments: { text: string; answer: boolean }[] = [];
   let lastIndex = 0;
   for (const m of text.matchAll(CLOZE_RE)) {
@@ -79,7 +94,7 @@ export function CardQuestion({ card }: { card: CardData }) {
       {card.type === "cloze"
         ? <Text value={clozeQuestion(card.front)} className="text-2xl md:text-3xl font-semibold leading-relaxed" />
         : <Text value={card.front} className="text-2xl md:text-3xl font-semibold leading-relaxed" />}
-      <CardImages src={card.imageFront} />
+      <CardMedia src={card.imageFront} />
     </div>
   );
 }
@@ -98,7 +113,7 @@ export function CardAnswer({ card }: { card: CardData }) {
             )
           )}
         </p>
-        <CardImages src={card.imageBack} />
+        <CardMedia src={card.imageBack} />
         <AnswerExtras card={card} />
       </div>
     );
@@ -116,7 +131,7 @@ export function CardAnswer({ card }: { card: CardData }) {
             </li>
           ))}
         </ul>
-        <CardImages src={card.imageBack} />
+        <CardMedia src={card.imageBack} />
         <AnswerExtras card={card} />
       </div>
     );
@@ -125,7 +140,7 @@ export function CardAnswer({ card }: { card: CardData }) {
   return (
     <div className="space-y-3">
       <Text value={card.back} className="text-xl md:text-2xl leading-relaxed" />
-      <CardImages src={card.imageBack} />
+      <CardMedia src={card.imageBack} />
       <AnswerExtras card={card} />
     </div>
   );
@@ -136,7 +151,7 @@ export function CardAnswer({ card }: { card: CardData }) {
 function Text({ value, className }: { value: string; className?: string }) {
   return (
     <div className={`${className ?? ""} break-words`}>
-      {value.split(/\r?\n/).map((line, i) => (
+      {stripSoundTags(value).split(/\r?\n/).map((line, i) => (
         <p key={i} dir="auto">{line || " "}</p>
       ))}
     </div>

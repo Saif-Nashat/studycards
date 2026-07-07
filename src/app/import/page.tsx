@@ -170,7 +170,7 @@ function ApkgImport() {
     <div className="space-y-4">
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Download free decks from <a href="https://ankiweb.net/shared/decks" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">ankiweb.net/shared</a> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own image-rich decks (UWorld, etc.) — pictures are imported too. Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
+        <span>Download free decks from <a href="https://ankiweb.net/shared/decks" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">ankiweb.net/shared</a> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own media-rich decks (UWorld, etc.) — pictures and audio clips are imported too (video is skipped). Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
       </div>
 
       <div className="card-surface p-5 space-y-3">

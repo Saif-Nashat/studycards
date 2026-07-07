@@ -6,8 +6,9 @@
 // bundle their images and routinely run 100 MB+, so the file can never travel
 // to the server in one piece. Instead the browser unzips the deck, reads the
 // SQLite collection with sql.js (WASM, served from /sql-wasm-browser.wasm),
-// shrinks each image on a canvas, and uploads the results to
-// /api/import/apkg as JSON batches that each stay far below the limit.
+// shrinks each image on a canvas, keeps audio clips as-is (video is skipped),
+// and uploads the results to /api/import/apkg as JSON batches that each stay
+// far below the limit.
 //
 // The cleaning/shrinking rules mirror what the server route used to do, so
 // imported decks come out the same as before.
@@ -19,6 +20,11 @@ const FIELD_SEP = "\x1f";
 
 // Skip images bigger than this so one giant scan can't bloat the database row.
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+// Audio is stored as-is — a browser can't usefully re-encode audio the way
+// the canvas shrinks images — so cap the file size instead. 1.8 MB is ~2
+// minutes of 128 kbps mp3, far beyond any pronunciation or murmur clip, and
+// its base64 still fits inside a single upload batch.
+const MAX_AUDIO_BYTES = 1_800_000;
 // Ad/widget images that some decks (OnlineMedEd, etc.) sprinkle into every card —
 // pure promo, no study value, and embedding hundreds of copies wastes space.
 const PROMO_IMAGE = /^_OME_|bootcamp/i;
@@ -68,8 +74,11 @@ export class ApkgImportError extends Error {
 }
 
 // Strip HTML tags and decode a few common entities so cards read cleanly.
+// Anki's [sound:...] media markers go too — the audio they point at is
+// imported separately (video isn't), and the marker itself is just noise.
 function cleanText(html: string): string {
   return html
+    .replace(/\[sound:[^\]]*\]/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li)>/gi, "\n")
     .replace(/<[^>]+>/g, "")
@@ -83,24 +92,48 @@ function cleanText(html: string): string {
     .trim();
 }
 
-const IMG_RE = /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
+// src can be double-quoted, single-quoted or (in some very old decks) bare.
+const IMG_RE = /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
+// Audio and video are both referenced with the same non-HTML tag.
+const SOUND_RE = /\[sound:([^\]]+)\]/gi;
 
-// Pull the src filenames out of a chunk of Anki field HTML, decoding the few
-// ways a filename can be escaped (HTML entities, percent-encoding).
+// Only these [sound:...] files are imported; anything else (mp4, webm, mkv,
+// mov, avi… — i.e. video) is deliberately skipped: the files are huge and the
+// app doesn't play video.
+const AUDIO_EXTS = new Set(["mp3", "m4a", "ogg", "oga", "opus", "spx", "wav", "flac", "aac", "3gp"]);
+
+// Decode the few ways a media filename can be escaped in field HTML
+// (HTML entities, percent-encoding).
+function decodeMediaName(src: string): string {
+  let name = src
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"');
+  try {
+    // Some decks percent-encode spaces/unicode in the src.
+    if (/%[0-9a-f]{2}/i.test(name)) name = decodeURIComponent(name);
+  } catch {
+    /* leave as-is if it isn't valid percent-encoding */
+  }
+  return name;
+}
+
+// Pull the <img> src filenames out of a chunk of Anki field HTML.
 function imageRefsIn(html: string): string[] {
   const out: string[] = [];
   for (const m of html.matchAll(IMG_RE)) {
-    let src = m[1]
-      .replace(/&amp;/g, "&")
-      .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"');
-    try {
-      // Some decks percent-encode spaces/unicode in the src.
-      if (/%[0-9a-f]{2}/i.test(src)) src = decodeURIComponent(src);
-    } catch {
-      /* leave as-is if it isn't valid percent-encoding */
-    }
-    out.push(src);
+    const src = decodeMediaName(m[1] ?? m[2] ?? m[3] ?? "");
+    if (src) out.push(src);
+  }
+  return out;
+}
+
+// Pull the [sound:...] filenames (audio and video alike; filtered later).
+function soundRefsIn(html: string): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(SOUND_RE)) {
+    const name = decodeMediaName(m[1].trim());
+    if (name) out.push(name);
   }
   return out;
 }
@@ -115,8 +148,29 @@ function mimeFor(name: string): string {
     webp: "image/webp",
     svg: "image/svg+xml",
     bmp: "image/bmp",
+    avif: "image/avif",
+    ico: "image/x-icon",
+    tif: "image/tiff",
+    tiff: "image/tiff",
   };
   return map[ext] || "image/jpeg";
+}
+
+function mimeForAudio(name: string): string {
+  const ext = name.toLowerCase().split(".").pop() || "";
+  const map: Record<string, string> = {
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    ogg: "audio/ogg",
+    oga: "audio/ogg",
+    opus: "audio/ogg",
+    spx: "audio/ogg",
+    wav: "audio/wav",
+    flac: "audio/flac",
+    aac: "audio/aac",
+    "3gp": "audio/3gpp",
+  };
+  return map[ext] || "audio/mpeg";
 }
 
 // A plain ArrayBuffer covering exactly this view's bytes (Blob/crypto want one).
@@ -205,6 +259,9 @@ interface BatchCard {
   imageBack: string;
 }
 
+// One stored media blob — a shrunk image or an audio clip. (The upload field
+// is still called `images` because that's what the server route has always
+// accepted; audio simply rides the same store.)
 interface BatchImage {
   id: string;
   mime: string;
@@ -322,12 +379,27 @@ export async function importApkgFile(
     batchBytes = 0;
   }
 
+  // Hash a finished blob and queue it for upload exactly once (in whichever
+  // batch first needs it), so media reused across dozens of cards costs
+  // upload and storage only once. Returns the content id, or null if the
+  // encoding is too big to embed at all.
+  const sentMedia = new Set<string>();
+  async function stageMedia(data: Uint8Array, mime: string): Promise<string | null> {
+    const b64 = toBase64(data);
+    if (b64.length > MAX_EMBED_BASE64) return null;
+    const id = await hashId(bufferOf(data));
+    if (!sentMedia.has(id)) {
+      // If this blob alone would overflow the batch, ship what we have first.
+      if (batchBytes + b64.length > BATCH_LIMIT) await flush();
+      batchImages.push({ id, mime, data: b64 });
+      batchBytes += b64.length;
+      sentMedia.add(id);
+    }
+    return id;
+  }
+
   // Resolve a referenced filename to a stored-image reference ("img:<hash>").
-  // Each unique image is shrunk, hashed and sent to the server exactly once
-  // (in whichever batch first needs it), so a picture reused across dozens of
-  // cards costs upload and storage only once.
   const refCache = new Map<string, string | null>(); // filename -> "img:<id>" | null
-  const sentImages = new Set<string>();
   async function imageRef(filename: string): Promise<string | null> {
     if (refCache.has(filename)) return refCache.get(filename)!;
     let ref: string | null = null;
@@ -338,18 +410,8 @@ export async function importApkgFile(
         const raw = await entry.async("uint8array");
         if (raw.byteLength <= MAX_IMAGE_BYTES) {
           const { data, mime } = await shrinkImage(raw, filename);
-          const b64 = toBase64(data);
-          if (b64.length <= MAX_EMBED_BASE64) {
-            const id = await hashId(bufferOf(data));
-            if (!sentImages.has(id)) {
-              // If this image alone would overflow the batch, ship what we have first.
-              if (batchBytes + b64.length > BATCH_LIMIT) await flush();
-              batchImages.push({ id, mime, data: b64 });
-              batchBytes += b64.length;
-              sentImages.add(id);
-            }
-            ref = `img:${id}`;
-          }
+          const id = await stageMedia(data, mime);
+          if (id) ref = `img:${id}`;
         }
       }
     }
@@ -357,14 +419,44 @@ export async function importApkgFile(
     return ref;
   }
 
-  // Collect the images referenced in a chunk of HTML, de-duplicated, as refs.
-  async function collectImages(html: string): Promise<string[]> {
-    const seenSrc = new Set<string>();
+  // Resolve a [sound:...] filename to a stored-audio reference ("snd:<hash>").
+  // Video extensions never get a ref — their markers were already stripped
+  // from the text, so the card simply imports without the clip.
+  const audioCache = new Map<string, string | null>(); // filename -> "snd:<id>" | null
+  async function audioRef(filename: string): Promise<string | null> {
+    if (audioCache.has(filename)) return audioCache.get(filename)!;
+    let ref: string | null = null;
+    const ext = filename.toLowerCase().split(".").pop() || "";
+    if (AUDIO_EXTS.has(ext)) {
+      const num = numberByFilename.get(filename);
+      const entry = num ? zip.file(num) : null;
+      if (entry) {
+        const raw = await entry.async("uint8array");
+        if (raw.byteLength <= MAX_AUDIO_BYTES) {
+          const id = await stageMedia(raw, mimeForAudio(filename));
+          if (id) ref = `snd:${id}`;
+        }
+      }
+    }
+    audioCache.set(filename, ref);
+    return ref;
+  }
+
+  // Collect the media referenced in a chunk of HTML, de-duplicated, as refs —
+  // pictures first, then audio clips.
+  async function collectMedia(html: string): Promise<string[]> {
     const refs: string[] = [];
+    const seenSrc = new Set<string>();
     for (const src of imageRefsIn(html)) {
       if (seenSrc.has(src)) continue;
       seenSrc.add(src);
       const ref = await imageRef(src);
+      if (ref) refs.push(ref);
+    }
+    for (const src of soundRefsIn(html)) {
+      if (seenSrc.has(src)) continue;
+      seenSrc.add(src);
+      const ref = await audioRef(src);
       if (ref) refs.push(ref);
     }
     return refs;
@@ -388,21 +480,22 @@ export async function importApkgFile(
     const front = isCloze ? cleanText(frontRaw) : cleaned[0] || "";
     const back = cleaned.slice(1).join("\n\n");
 
-    const frontImages = await collectImages(frontRaw);
-    // Don't repeat an image on the back if it already shows on the front.
-    const frontSet = new Set(frontImages);
-    const backImages = (await collectImages(backRaw)).filter((u) => !frontSet.has(u));
+    const frontMedia = await collectMedia(frontRaw);
+    // Don't repeat a picture/clip on the back if it already plays on the front.
+    const frontSet = new Set(frontMedia);
+    const backMedia = (await collectMedia(backRaw)).filter((u) => !frontSet.has(u));
 
-    // Keep the card if it has any text OR any picture (lots of UWorld-style
-    // cards are essentially "question text → answer image").
-    const hasContent = front || back || frontImages.length || backImages.length;
+    // Keep the card if it has any text OR any picture/audio (lots of
+    // UWorld-style cards are essentially "question text → answer image",
+    // and language cards can be nothing but a pronunciation clip).
+    const hasContent = front || back || frontMedia.length || backMedia.length;
     if (!hasContent) {
       localSkipped++;
       continue;
     }
 
-    // De-duplicate on whatever identifies the card (front text, else its first image).
-    const key = (front || frontImages[0] || backImages[0] || "").trim();
+    // De-duplicate on whatever identifies the card (front text, else its first media).
+    const key = (front || frontMedia[0] || backMedia[0] || "").trim();
     if (seen.has(key)) {
       localSkipped++;
       continue;
@@ -414,8 +507,8 @@ export async function importApkgFile(
       front,
       back,
       tags: row.tags,
-      imageFront: frontImages.join("\n"),
-      imageBack: backImages.join("\n"),
+      imageFront: frontMedia.join("\n"),
+      imageBack: backMedia.join("\n"),
     };
     const cardBytes =
       card.front.length + card.back.length + card.tags.length +
