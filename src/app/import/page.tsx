@@ -92,7 +92,7 @@ function TextImport({ decks }: { decks: Deck[] }) {
         <div className="flex items-center gap-3 flex-wrap">
           <label className="btn btn-ghost cursor-pointer text-sm">
             <FileUp size={16} /> Upload a file
-            <input type="file" accept=".json,.csv,.txt,.tsv" className="hidden" onChange={onFile} />
+            <input type="file" accept=".json,.csv,.txt,.tsv,application/json,text/csv,text/plain,text/tab-separated-values" className="hidden" onChange={onFile} />
           </label>
           <button onClick={doPreview} className="btn btn-ghost text-sm" disabled={busy || !text.trim()}>
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Eye size={16} />} Preview
@@ -170,13 +170,18 @@ function ApkgImport() {
     <div className="space-y-4">
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Download free decks from <b>ankiweb.net/shared</b> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own image-rich decks (UWorld, etc.) — pictures are imported too. Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
+        <span>Download free decks from <a href="https://ankiweb.net/shared/decks" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">ankiweb.net/shared</a> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own image-rich decks (UWorld, etc.) — pictures are imported too. Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
       </div>
 
       <div className="card-surface p-5 space-y-3">
         <label className="btn btn-ghost cursor-pointer w-full justify-center py-6 border-dashed">
           <FileUp size={18} /> {file ? file.name : "Choose a .apkg file"}
-          <input type="file" accept=".apkg" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); dismissImport(); }} />
+          {/* The MIME types matter on phones: with only an unknown ".apkg"
+              extension, Android/iOS fall back to "any file" and offer the
+              gallery/camera — which can't hold an apkg. Naming zip +
+              octet-stream (what .apkg downloads are stored as) makes the
+              picker go straight to the file browser. */}
+          <input type="file" accept=".apkg,application/zip,application/octet-stream" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); dismissImport(); }} />
         </label>
         <label className="block">
           <span className="text-sm font-medium">Deck name (optional — defaults to the file name)</span>

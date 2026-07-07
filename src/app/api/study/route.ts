@@ -1,7 +1,29 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, Card } from "@prisma/client";
+
+// Fisher–Yates, in place.
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// A uniform random sample of `cap` cards from EVERYTHING matching `where`.
+// Sampling ids first (they're tiny) then fetching only the winners means a
+// 20-card test over a 5,000-card deck can draw any of the 5,000 — not just
+// whatever rows the DB happens to return first.
+async function sampleCards(where: Prisma.CardWhereInput, cap: number): Promise<Card[]> {
+  const ids = (await prisma.card.findMany({ where, select: { id: true } })).map((r) => r.id);
+  shuffle(ids);
+  const picked = ids.slice(0, cap);
+  const cards = await prisma.card.findMany({ where: { id: { in: picked } } });
+  const byId = new Map(cards.map((c) => [c.id, c]));
+  return picked.flatMap((id) => byId.get(id) ?? []);
+}
 
 // Build a study queue.
 // Params:
@@ -39,41 +61,32 @@ export async function GET(req: Request) {
     else if (source === "flagged") where.flagged = true;
     // "all" -> no extra filter
 
-    const found = await prisma.card.findMany({ where, take: 500 });
-    // Shuffle so a test feels fresh.
-    for (let i = found.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [found[i], found[j]] = [found[j], found[i]];
-    }
-    return NextResponse.json(limit ? found.slice(0, limit) : found);
+    return NextResponse.json(await sampleCards(where, limit || 500));
   }
 
   if (mode === "hard") {
     // Hard-rated + flagged/leech only; "again"-rated cards are excluded (they
     // reappear in the normal due queue almost immediately).
-    const cards = await prisma.card.findMany({
-      where: { AND: [base, { OR: [{ flagged: true }, { isLeech: true }, { lastRating: "hard" }] }] },
-      orderBy: { due: "asc" },
-      take: 200,
-    });
+    const cards = await sampleCards(
+      { AND: [base, { OR: [{ flagged: true }, { isLeech: true }, { lastRating: "hard" }] }] },
+      200
+    );
     return NextResponse.json(cards);
   }
 
   if (mode === "all") {
-    const cards = await prisma.card.findMany({ where: base, orderBy: { due: "asc" }, take: 200 });
-    return NextResponse.json(cards);
+    return NextResponse.json(await sampleCards(base, 200));
   }
 
-  // default "due": due review cards + a capped number of new cards
+  // default "due": due review cards + a capped number of new cards.
+  // The most-overdue cards are picked first (that's the point of spaced
+  // repetition), but the new cards are a random draw and the final queue is
+  // shuffled so a session never replays the deck in insertion order.
   const dueCards = await prisma.card.findMany({
     where: { AND: [base, { state: { not: "new" }, due: { lte: now } }] },
     orderBy: { due: "asc" },
     take: 200,
   });
-  const newCards = await prisma.card.findMany({
-    where: { AND: [base, { state: "new" }] },
-    orderBy: { createdAt: "asc" },
-    take: newLimit,
-  });
-  return NextResponse.json([...dueCards, ...newCards]);
+  const newCards = await sampleCards({ AND: [base, { state: "new" }] }, newLimit);
+  return NextResponse.json(shuffle([...dueCards, ...newCards]));
 }

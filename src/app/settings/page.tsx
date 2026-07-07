@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Settings, Copy, Check, LifeBuoy, Sparkles, Package, Phone, GraduationCap, PlayCircle } from "lucide-react";
 import { CLAUDE_PROMPT } from "@/lib/prompt";
 import StoragePanel from "@/components/StoragePanel";
@@ -61,8 +62,13 @@ export default function SettingsPage() {
       <section className="card-surface p-6">
         <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><Package size={18} className="text-[var(--color-brand)]" /> Free USMLE / OB-GYN decks</h2>
         <p className="text-[var(--color-muted)] text-sm">
-          Get free community Anki decks from <b>ankiweb.net/shared</b> — search for <b>AnKing</b>, <b>Zanki</b>, or <b>Lightyear</b> (Step 1 &amp; 2).
-          Download the <code>.apkg</code> file and load it on the <b>Import → Anki deck</b> tab. These are free and community-made, so double-check facts as you study.
+          Get free community Anki decks from{" "}
+          <a href="https://ankiweb.net/shared/decks" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">ankiweb.net/shared</a> — search
+          for <a href="https://ankiweb.net/shared/decks?search=anking" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">AnKing</a>,{" "}
+          <a href="https://ankiweb.net/shared/decks?search=zanki" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">Zanki</a>, or{" "}
+          <a href="https://ankiweb.net/shared/decks?search=lightyear" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">Lightyear</a> (Step 1 &amp; 2).
+          Download the <code>.apkg</code> file and load it on the <Link href="/import" className="font-semibold text-[var(--color-brand)] hover:underline">Import → Anki deck</Link> tab.
+          These are free and community-made, so double-check facts as you study.
         </p>
       </section>
 
