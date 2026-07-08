@@ -18,15 +18,22 @@ export const TAG_GROUP_LABELS: Record<TagGroupKey, string> = {
 // The order groups appear in the UI.
 export const TAG_GROUP_ORDER: TagGroupKey[] = ["systems", "topics"];
 
-// Explicit placement for the six broad buckets the app already uses, so they
-// always land where we expect regardless of the keyword heuristics below.
+// Explicit placement for the broad buckets the app uses (src/lib/tags.ts). The
+// taxonomy is now organ-system based, so every organ system lands under
+// "systems"; only the cross-cutting catch-all reads as a "topic".
 const EXPLICIT: Record<string, TagGroupKey> = {
   "Obstetrics": "systems",
   "Gynecology": "systems",
-  "Reproductive Science": "systems",
-  "Pathology & Oncology": "topics",
-  "Pharmacology & Microbiology": "topics",
-  "General Medicine & Research": "topics",
+  "Reproductive": "systems",
+  "Endocrine": "systems",
+  "Cardiovascular": "systems",
+  "Respiratory": "systems",
+  "Gastrointestinal": "systems",
+  "Renal & Urinary": "systems",
+  "Nervous System & Psychiatry": "systems",
+  "Musculoskeletal & Skin": "systems",
+  "Hematology & Immune": "systems",
+  "General & Multisystem": "topics",
 };
 
 // Keywords that mark a tag as a body system / anatomical area.

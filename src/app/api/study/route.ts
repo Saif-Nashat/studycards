@@ -27,7 +27,8 @@ async function sampleCards(where: Prisma.CardWhereInput, cap: number): Promise<C
 
 // Build a study queue.
 // Params:
-//   deckId       optional single deck
+//   deckId       optional single deck (legacy)
+//   deckIds      optional comma-separated decks (multi-deck select)
 //   tag          optional single tag (legacy)
 //   tags         optional comma-separated tags (custom test)
 //   mode         "due" | "hard" | "all" | "custom"
@@ -39,7 +40,8 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const deckId = searchParams.get("deckId") || undefined;
+  const deckId = searchParams.get("deckId")?.trim() || undefined;
+  const deckIdsParam = searchParams.get("deckIds")?.trim() || undefined;
   const tag = searchParams.get("tag")?.trim() || undefined;
   const tagsParam = searchParams.get("tags")?.trim() || undefined;
   const mode = searchParams.get("mode") || "due";
@@ -48,9 +50,13 @@ export async function GET(req: Request) {
   const newLimit = Number(searchParams.get("newLimit")) || 20;
   const now = new Date();
 
-  // Base filter shared by all modes: owner + deck + tag(s).
+  // Base filter shared by all modes: owner + deck(s) + tag(s).
   const base: Prisma.CardWhereInput = { userId: user.id };
-  if (deckId) base.deckId = deckId;
+  // Decks: accept a single `deckId` (legacy) or a comma-separated `deckIds`.
+  // No deck given -> every deck. One deck -> exact match. Several -> `in`.
+  const deckList = [deckId, ...(deckIdsParam ? deckIdsParam.split(",") : [])].map((d) => d?.trim()).filter(Boolean) as string[];
+  if (deckList.length === 1) base.deckId = deckList[0];
+  else if (deckList.length > 1) base.deckId = { in: deckList };
   const tagList = [tag, ...(tagsParam ? tagsParam.split(",") : [])].map((t) => t?.trim()).filter(Boolean) as string[];
   if (tagList.length) base.OR = tagList.map((t) => ({ tags: { contains: t } }));
 

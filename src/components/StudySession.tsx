@@ -20,7 +20,7 @@ const RATINGS: { key: Rating; label: string; color: string; hot: string }[] = [
   { key: "easy", label: "Easy", color: "var(--color-easy)", hot: "4" },
 ];
 
-export default function StudySession({ mode, deckId, tag, tags, source, limit, title, timer = "none", pomoFocus = 25, pomoBreak = 5, goalCards, goalMinutes }: { mode: Mode; deckId?: string; tag?: string; tags?: string; source?: string; limit?: number; title: string; timer?: TimerMode; pomoFocus?: number; pomoBreak?: number; goalCards?: number; goalMinutes?: number }) {
+export default function StudySession({ mode, deckId, deckIds, tag, tags, source, limit, title, timer = "none", pomoFocus = 25, pomoBreak = 5, goalCards, goalMinutes }: { mode: Mode; deckId?: string; deckIds?: string; tag?: string; tags?: string; source?: string; limit?: number; title: string; timer?: TimerMode; pomoFocus?: number; pomoBreak?: number; goalCards?: number; goalMinutes?: number }) {
   // The pomodoro durations are fixed for the life of a session; memoise so the
   // config keeps a stable identity for effect dependencies.
   const pomoCfg = useMemo(() => pomoConfig(pomoFocus, pomoBreak), [pomoFocus, pomoBreak]);
@@ -56,6 +56,7 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
   useEffect(() => {
     const params = new URLSearchParams({ mode });
     if (deckId) params.set("deckId", deckId);
+    if (deckIds) params.set("deckIds", deckIds);
     if (tag) params.set("tag", tag);
     if (tags) params.set("tags", tags);
     if (source) params.set("source", source);
@@ -70,7 +71,7 @@ export default function StudySession({ mode, deckId, tag, tags, source, limit, t
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [mode, deckId, tag, tags, source, limit]);
+  }, [mode, deckId, deckIds, tag, tags, source, limit]);
 
   // Tick the clock once a second using real elapsed time between ticks (so a
   // throttled background tab catches up correctly instead of losing time).

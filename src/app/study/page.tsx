@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Play, FlaskConical, Flame, BookOpen, Timer, Coffee, Target, CircleOff } from "lucide-react";
+import { Loader2, Play, FlaskConical, Flame, BookOpen, Timer, Coffee, Target, CircleOff, Layers } from "lucide-react";
 import StudySession from "@/components/StudySession";
 import { parseTimerMode, DEFAULT_POMODORO, POMO_LIMITS, type TimerMode } from "@/lib/timer";
 import { groupTags } from "@/lib/tagGroups";
@@ -15,6 +15,7 @@ function StudyInner() {
   // When "go" is present, run a session using the URL parameters.
   if (go) {
     const deckId = params.get("deckId") || undefined;
+    const deckIds = params.get("deckIds") || undefined;
     const deckName = params.get("deckName") || undefined;
     const tag = params.get("tag") || undefined;
     const tagName = params.get("tagName") || tag;
@@ -28,24 +29,29 @@ function StudyInner() {
     const goalCards = Number(params.get("goalCards")) || undefined;
     const goalMinutes = Number(params.get("goalMin")) || undefined;
 
+    const deckCount = deckIds ? deckIds.split(",").filter(Boolean).length : 0;
     const title = mode === "custom" ? "Custom test"
       : tag ? `Topic: ${tagName}`
       : deckName ? `Studying: ${deckName}`
+      : deckCount > 0 ? `Studying: ${deckCount} deck${deckCount === 1 ? "" : "s"}`
       : "Studying all due cards";
 
-    return <StudySession mode={mode} deckId={deckId} tag={tag} tags={tags} source={source} limit={limit} title={title} timer={timer} pomoFocus={pomoFocus} pomoBreak={pomoBreak} goalCards={goalCards} goalMinutes={goalMinutes} />;
+    return <StudySession mode={mode} deckId={deckId} deckIds={deckIds} tag={tag} tags={tags} source={source} limit={limit} title={title} timer={timer} pomoFocus={pomoFocus} pomoBreak={pomoBreak} goalCards={goalCards} goalMinutes={goalMinutes} />;
   }
 
   return <TestBuilder />;
 }
 
 interface Tag { tag: string; total: number; ready: number; }
+interface Deck { id: string; name: string; total: number; due: number; new: number; }
 
 function TestBuilder() {
   const router = useRouter();
   const [tags, setTags] = useState<Tag[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectedDecks, setSelectedDecks] = useState<Set<string>>(new Set());
   const [source, setSource] = useState<"all" | "new" | "unanswered" | "flagged">("all");
   const [count, setCount] = useState(20);
   const [timerMode, setTimerMode] = useState<TimerMode>("none");
@@ -54,10 +60,23 @@ function TestBuilder() {
   const [goalType, setGoalType] = useState<"none" | "cards" | "time">("none");
   const [goalValue, setGoalValue] = useState(20);
 
-  useEffect(() => { fetch("/api/tags").then((r) => r.json()).then((d) => { setTags(Array.isArray(d) ? d : []); setLoading(false); }); }, []);
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/tags").then((r) => r.json()).catch(() => []),
+      fetch("/api/decks").then((r) => r.json()).catch(() => []),
+    ]).then(([t, d]) => {
+      setTags(Array.isArray(t) ? t : []);
+      setDecks(Array.isArray(d) ? d : []);
+      setLoading(false);
+    });
+  }, []);
 
   function toggle(tag: string) {
     setSelected((s) => { const n = new Set(s); n.has(tag) ? n.delete(tag) : n.add(tag); return n; });
+  }
+
+  function toggleDeck(id: string) {
+    setSelectedDecks((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
 
   function pickGoal(type: "none" | "cards" | "time") {
@@ -69,6 +88,7 @@ function TestBuilder() {
 
   function startTest() {
     const p = new URLSearchParams({ go: "1", mode: "custom", source, limit: String(count) });
+    if (selectedDecks.size) p.set("deckIds", Array.from(selectedDecks).join(","));
     if (selected.size) p.set("tags", Array.from(selected).join(","));
     if (timerMode !== "none") p.set("timer", timerMode);
     if (timerMode === "pomodoro") { p.set("focus", String(pomoFocus)); p.set("break", String(pomoBreak)); }
@@ -112,10 +132,36 @@ function TestBuilder() {
         <div className="grid place-items-center py-16 text-[var(--color-muted)]"><Loader2 className="animate-spin" /></div>
       ) : (
         <>
+          {/* Decks */}
+          <div className="card-surface p-5 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold flex items-center gap-2"><Layers size={17} /> 1. Decks {selectedDecks.size > 0 && <span className="text-sm font-normal text-[var(--color-muted)]">({selectedDecks.size} selected)</span>}</h2>
+              {selectedDecks.size > 0 && <button onClick={() => setSelectedDecks(new Set())} className="text-sm text-[var(--color-brand)]">All decks</button>}
+            </div>
+            {decks.length === 0 ? (
+              <p className="text-sm text-[var(--color-muted)]">No decks yet — import some cards first.</p>
+            ) : (
+              <>
+                <p className="text-xs text-[var(--color-muted)] mb-3">Leave all unselected to study across every deck.</p>
+                <div className="flex flex-wrap gap-2">
+                  {decks.map((d) => {
+                    const on = selectedDecks.has(d.id);
+                    return (
+                      <button key={d.id} onClick={() => toggleDeck(d.id)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${on ? "bg-[var(--color-brand)] text-white border-transparent" : "bg-[var(--color-surface)] border-[var(--color-line)] hover:border-[var(--color-brand)]"}`}>
+                        {d.name} <span className={on ? "opacity-80" : "text-[var(--color-muted)]"}>{d.total}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Subjects */}
           <div id="tour-test-builder" className="card-surface p-5 mb-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold">1. Subjects {selected.size > 0 && <span className="text-sm font-normal text-[var(--color-muted)]">({selected.size} selected)</span>}</h2>
+              <h2 className="font-bold">2. Subjects {selected.size > 0 && <span className="text-sm font-normal text-[var(--color-muted)]">({selected.size} selected)</span>}</h2>
               {selected.size > 0 && <button onClick={() => setSelected(new Set())} className="text-sm text-[var(--color-brand)]">Clear</button>}
             </div>
             {tags.length === 0 ? (
@@ -147,7 +193,7 @@ function TestBuilder() {
 
           {/* Source */}
           <div className="card-surface p-5 mb-4">
-            <h2 className="font-bold mb-3">2. Card source</h2>
+            <h2 className="font-bold mb-3">3. Card source</h2>
             <div className="grid sm:grid-cols-2 gap-2">
               {SOURCES.map((s) => (
                 <button key={s.key} onClick={() => setSource(s.key)}
@@ -164,7 +210,7 @@ function TestBuilder() {
 
           {/* Count */}
           <div className="card-surface p-5 mb-4">
-            <h2 className="font-bold mb-3">3. How many cards</h2>
+            <h2 className="font-bold mb-3">4. How many cards</h2>
             <div className="flex items-center gap-3 flex-wrap">
               {[10, 20, 40, 80].map((n) => (
                 <button key={n} onClick={() => setCount(n)} className={`btn ${count === n ? "btn-primary" : "btn-ghost"} py-2 px-4`}>{n}</button>
@@ -175,7 +221,7 @@ function TestBuilder() {
 
           {/* Timer */}
           <div className="card-surface p-5 mb-4">
-            <h2 className="font-bold mb-3 flex items-center gap-2"><Timer size={17} /> 4. Timer</h2>
+            <h2 className="font-bold mb-3 flex items-center gap-2"><Timer size={17} /> 5. Timer</h2>
             <div className="grid sm:grid-cols-3 gap-2">
               {TIMERS.map((t) => (
                 <button key={t.key} onClick={() => setTimerMode(t.key)}
@@ -222,7 +268,7 @@ function TestBuilder() {
 
           {/* Session goal */}
           <div className="card-surface p-5 mb-5">
-            <h2 className="font-bold mb-3 flex items-center gap-2"><Target size={17} /> 5. Session goal</h2>
+            <h2 className="font-bold mb-3 flex items-center gap-2"><Target size={17} /> 6. Session goal</h2>
             <div className="grid sm:grid-cols-3 gap-2 mb-3">
               {GOALS.map((g) => (
                 <button key={g.key} onClick={() => pickGoal(g.key)}
