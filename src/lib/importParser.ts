@@ -37,14 +37,9 @@ function normalizeCard(raw: Record<string, unknown>): ParsedCard | null {
   };
 }
 
-export function parseImport(input: string): ParseResult {
-  // Tolerate a pasted markdown code block (```json … ```): people often copy
-  // the fences along with the JSON, which would otherwise fall through to the
-  // CSV path and produce garbage cards.
-  const text = input.trim().replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
-  if (!text) return { cards: [] };
-
-  // Try JSON first.
+// Parse a string as card JSON ({deck, cards} or a bare array); null if it
+// isn't valid JSON of either shape.
+function tryParseJson(text: string): ParseResult | null {
   try {
     const data = JSON.parse(text);
     if (Array.isArray(data)) {
@@ -58,8 +53,43 @@ export function parseImport(input: string): ParseResult {
       };
     }
   } catch {
-    // not JSON, fall through to CSV/TSV
+    /* not JSON */
   }
+  return null;
+}
+
+// Some chatbots (ChatGPT and Gemini more than Claude) wrap the JSON in chatty
+// prose ("Here are your flashcards! …") even when told not to. Fish it out:
+// a fenced code block anywhere in the paste, else the outermost {...} / [...]
+// span. Only accepted when it actually yields cards, so plain CSV pastes that
+// happen to contain braces still reach the CSV path.
+function tryParseEmbeddedJson(input: string): ParseResult | null {
+  const fenced = input.match(/```[a-z]*\s*([\s\S]*?)```/i);
+  if (fenced) {
+    const r = tryParseJson(fenced[1].trim());
+    if (r?.cards.length) return r;
+  }
+  for (const [open, close] of [["{", "}"], ["[", "]"]] as const) {
+    const start = input.indexOf(open);
+    const end = input.lastIndexOf(close);
+    if (start !== -1 && end > start) {
+      const r = tryParseJson(input.slice(start, end + 1));
+      if (r?.cards.length) return r;
+    }
+  }
+  return null;
+}
+
+export function parseImport(input: string): ParseResult {
+  // Tolerate a pasted markdown code block (```json … ```): people often copy
+  // the fences along with the JSON, which would otherwise fall through to the
+  // CSV path and produce garbage cards.
+  const text = input.trim().replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+  if (!text) return { cards: [] };
+
+  // Try JSON first — the exact paste, then JSON buried in surrounding prose.
+  const asJson = tryParseJson(text) ?? tryParseEmbeddedJson(input);
+  if (asJson) return asJson;
 
   // CSV / TSV: each line "front<sep>back<sep>tags". Detect separator.
   const lines = text.split(/\r?\n/).filter((l) => l.trim());

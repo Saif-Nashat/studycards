@@ -40,22 +40,20 @@ export default function SettingsPage() {
 
       {/* Prompt */}
       <section id="tour-prompt" className="card-surface p-6">
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><Sparkles size={18} className="text-[var(--color-brand)]" /> Make cards on claude.ai</h2>
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><Sparkles size={18} className="text-[var(--color-brand)]" /> Make cards with AI</h2>
         <p className="text-[var(--color-muted)] text-sm mb-2">
-          1. Click copy below. 2. Go to <b>claude.ai</b> and paste it. 3. Replace the last line with text from
-          <b> any study material</b>. 4. Claude replies with a JSON block — copy it. 5. Paste it into the <b>Import</b> page here.
+          1. Click copy below. 2. Paste it into your AI chat — <b>claude.ai</b> gives the best cards, but <b>ChatGPT</b> and{" "}
+          <b>Gemini</b> work too. 3. Replace the last line with text from
+          <b> any study material</b>. 4. The AI replies with a JSON block — copy it. 5. Paste it into the <b>Import</b> page here.
         </p>
         <p className="text-[var(--color-muted)] text-sm mb-4">
           📚 It doesn&apos;t have to be an MRCOG PDF — paste <b>university slides, lecture notes, textbook chapters,
           articles, case notes, code documentation, language vocabulary</b>… anything you want to learn, on any subject.
           The prompt adapts to whatever material you give it.
         </p>
-        <div className="relative">
-          <pre className="bg-[#0f172a] text-[#e2e8f0] rounded-xl p-4 text-xs overflow-x-auto max-h-72 whitespace-pre-wrap">{CLAUDE_PROMPT}</pre>
-          <button onClick={copyPrompt} className="btn btn-primary absolute top-3 right-3 py-1.5 px-3 text-sm">
-            {copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy</>}
-          </button>
-        </div>
+        <button onClick={copyPrompt} className="btn btn-primary text-sm">
+          {copied ? <><Check size={16} /> Copied — now paste it into your AI chat</> : <><Copy size={16} /> Copy the prompt</>}
+        </button>
       </section>
 
       {/* Free decks */}

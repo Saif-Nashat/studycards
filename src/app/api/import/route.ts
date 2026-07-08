@@ -4,7 +4,7 @@ import { getUser } from "@/lib/auth";
 import { parseImport } from "@/lib/importParser";
 import { quotaError } from "@/lib/storage";
 
-// Import claude.ai-generated cards (pasted text or uploaded file content).
+// Import AI-generated cards (claude.ai, ChatGPT, Gemini… — pasted text or uploaded file content).
 // Body: { text: string, deckId?: string, deckName?: string, preview?: boolean }
 export async function POST(req: Request) {
   const user = await getUser();

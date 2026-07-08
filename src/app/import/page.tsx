@@ -16,7 +16,7 @@ export default function ImportPage() {
     <div className="max-w-3xl mx-auto">
       <span className="eyebrow mb-2.5">Library intake</span>
       <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><Upload size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Import cards</h1>
-      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made on claude.ai, or load a free community Anki deck.</p>
+      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with AI — claude.ai, ChatGPT or Gemini — or load a free community Anki deck.</p>
 
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
         <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
@@ -29,7 +29,7 @@ export default function ImportPage() {
       </div>
 
       <div id="tour-import" className="flex gap-2 mb-5">
-        <button onClick={() => setTab("text")} className={`btn ${tab === "text" ? "btn-primary" : "btn-ghost"}`}><FileText size={16} /> claude.ai cards</button>
+        <button onClick={() => setTab("text")} className={`btn ${tab === "text" ? "btn-primary" : "btn-ghost"}`}><FileText size={16} /> AI cards</button>
         <button onClick={() => setTab("apkg")} className={`btn ${tab === "apkg" ? "btn-primary" : "btn-ghost"}`}><Package size={16} /> Anki deck (.apkg)</button>
       </div>
 
@@ -81,7 +81,7 @@ function TextImport({ decks }: { decks: Deck[] }) {
     <div className="space-y-4">
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Sparkles size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Need cards? Use the ready-made prompt on the <Link href="/settings" className="text-[var(--color-brand)] font-medium">Settings</Link> page on claude.ai, then paste the result here (or upload the .json/.csv file). Any source works — paste from your own slides, notes or a book, on any subject you want to learn.</span>
+        <span>Need cards? Use the ready-made prompt on the <Link href="/settings" className="text-[var(--color-brand)] font-medium">Settings</Link> page in claude.ai (best results), ChatGPT or Gemini, then paste the result here (or upload the .json/.csv file). Any source works — paste from your own slides, notes or a book, on any subject you want to learn.</span>
       </div>
 
       <div className="card-surface p-5 space-y-3">
