@@ -48,6 +48,16 @@ export const metadata: Metadata = {
     "flashcards", "spaced repetition", "Anki import", "study app",
     "USMLE", "MRCOG", "medical flashcards", "exam prep",
   ],
+  // Lets iOS treat the app as installable and show the right home-screen icon.
+  appleWebApp: {
+    capable: true,
+    title: "MediCards",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-icon.png",
+  },
   openGraph: {
     type: "website",
     siteName: "MediCards",

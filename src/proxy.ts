@@ -19,15 +19,23 @@ function secretKey() {
 }
 
 // Crawler/share assets must stay reachable without a session: robots and the
-// sitemap for search engines, icon and opengraph-image for link previews. The
-// login API stays public too (it's how you sign in); the login *page* is handled
-// separately below so we can redirect already-signed-in users away from it.
-const PUBLIC_PATHS = ["/api/login", "/robots.txt", "/sitemap.xml", "/icon", "/opengraph-image", "/favicon.ico"];
+// sitemap for search engines, opengraph-image for link previews, and the PWA
+// manifest — an install prompt (and the login page's own icon/theme) fetch it
+// while signed out. The login API stays public too (it's how you sign in); the
+// login *page* is handled separately below so we can redirect already-signed-in
+// users away from it.
+const PUBLIC_PATHS = ["/api/login", "/robots.txt", "/sitemap.xml", "/opengraph-image", "/favicon.ico", "/manifest.webmanifest"];
+// Brand/app icon files must load without a session too: the favicon route plus
+// every PWA install icon (/icon-192.png, /apple-icon.png, …).
+const PUBLIC_PREFIXES = ["/icon", "/apple-icon"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+  if (
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))
+  ) {
     return NextResponse.next();
   }
 

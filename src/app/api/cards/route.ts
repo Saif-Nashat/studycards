@@ -12,7 +12,14 @@ const SHORT_CAP = 1_000;
 const clip = (v: unknown, max: number) => String(v ?? "").slice(0, max);
 
 // List/search the logged-in user's cards.
-// Query params: deckId, q (search), flagged, hard, limit.
+// Query params: deckId, q (search), flagged, hard, leech, limit.
+//   page      when present, return ONE page of results as
+//             { cards, total, page, pageSize, totalPages } instead of a bare
+//             array — so Browse can paginate a huge collection instead of
+//             loading (and scrolling) all of it. Callers that omit `page`
+//             (e.g. the Hard queue) keep getting the plain array.
+const PAGE_SIZE = 30;
+
 export async function GET(req: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -24,6 +31,9 @@ export async function GET(req: Request) {
   const hard = searchParams.get("hard");
   const leech = searchParams.get("leech");
   const limit = Math.min(Number(searchParams.get("limit")) || 500, 2000);
+  const pageParam = searchParams.get("page");
+  const paginated = pageParam !== null;
+  const page = Math.max(1, Number(pageParam) || 1);
 
   const where: Record<string, unknown> = { userId: user.id };
   if (deckId) where.deckId = deckId;
@@ -40,6 +50,20 @@ export async function GET(req: Request) {
       { front: { contains: q } },
       { back: { contains: q } },
     ];
+  }
+
+  if (paginated) {
+    const [total, cards] = await Promise.all([
+      prisma.card.count({ where }),
+      prisma.card.findMany({
+        where,
+        include: { deck: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+      }),
+    ]);
+    return NextResponse.json({ cards, total, page, pageSize: PAGE_SIZE, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)) });
   }
 
   const cards = await prisma.card.findMany({

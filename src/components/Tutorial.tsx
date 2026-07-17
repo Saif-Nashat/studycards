@@ -53,7 +53,8 @@ const STEPS: Step[] = [
     body: (
       <>
         <p>The <b>Study</b> page builds custom tests — pick your decks and which cards to include, add an optional timer.</p>
-        <p className="mt-2">In a session, press <b>Space</b> to reveal, then rate <b>Again / Hard / Good / Easy</b> (keys <b>1–4</b>) — honest ratings set when each card returns. <b>F</b> flags a card; Hard and flagged cards collect in the <b>Hard</b> pile to drill later.</p>
+        <p className="mt-2">In a session, press <b>Space</b> to reveal, then rate <b>Again / Hard / Good / Easy</b> (keys <b>1–4</b>). <b>Rate honestly and each card finds its own rhythm</b> — easy cards fade far into the future, hard ones come back soon until they stick.</p>
+        <p className="mt-2"><b>F</b> flags a card you want to revisit; hard-rated and flagged cards collect in the <b>Hard / Flagged</b> pile to drill later.</p>
       </>
     ),
   },

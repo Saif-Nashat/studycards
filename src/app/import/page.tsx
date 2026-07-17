@@ -193,11 +193,6 @@ function ApkgImport() {
         </span>
       </div>
 
-      <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
-        <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
-        <span>Your own decks (UWorld, etc.) work too — pictures and audio clips are imported (video is skipped). Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
-      </div>
-
       <div className="card-surface p-5 space-y-3">
         <label className="btn btn-ghost cursor-pointer w-full justify-center py-6 border-dashed">
           <FileUp size={18} /> {file ? file.name : "Choose a .apkg file"}

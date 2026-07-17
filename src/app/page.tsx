@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Trophy, ArrowRight } from "lucide-react";
+import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Trophy, ArrowRight, History, CalendarCheck } from "lucide-react";
 import NumberTicker from "@/components/NumberTicker";
+import { readSavedSession, clearSavedSession, type SavedSession } from "@/components/StudySession";
 
 interface Stats { total: number; due: number; new: number; flagged: number; hard: number; decks: number; reviewedToday: number; }
 interface Deck { id: string; name: string; description: string; total: number; due: number; new: number; }
+interface Momentum { streak: number; longestStreak: number; daily: { date: string; label: string; count: number }[]; }
 
 export default function Dashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [decks, setDecks] = useState<Deck[]>([]);
+  const [momentum, setMomentum] = useState<Momentum | null>(null);
+  const [resume, setResume] = useState<SavedSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [newDeck, setNewDeck] = useState("");
   const [deckError, setDeckError] = useState("");
@@ -23,7 +27,15 @@ export default function Dashboard() {
     Promise.all([
       fetch("/api/stats").then((r) => r.json()),
       fetch("/api/decks").then((r) => r.json()),
-    ]).then(([s, d]) => { setStats(s); setDecks(d); setLoading(false); });
+      fetch("/api/insights").then((r) => r.json()).catch(() => null),
+    ]).then(([s, d, ins]) => {
+      setStats(s);
+      setDecks(d);
+      if (ins) setMomentum({ streak: ins.streak ?? 0, longestStreak: ins.longestStreak ?? ins.streak ?? 0, daily: Array.isArray(ins.daily) ? ins.daily : [] });
+      // sessionStorage is client-only; safe to read here inside the async callback.
+      setResume(readSavedSession());
+      setLoading(false);
+    });
   }
   useEffect(load, []);
 
@@ -99,10 +111,24 @@ export default function Dashboard() {
             <Play size={17} /> Study all due ({stats.due + stats.new})
             <span className="btn-orb"><ArrowRight size={13} /></span>
           </Link>
-          <Link href="/hard" className="btn btn-ghost py-3"><Flame size={17} strokeWidth={1.75} /> Hard cards ({stats.hard})</Link>
+          <Link href="/hard" className="btn btn-ghost py-3"><Flame size={17} strokeWidth={1.75} /> Hard / flagged ({stats.hard})</Link>
           <Link href="/achievements" className="btn btn-ghost py-3"><Trophy size={17} strokeWidth={1.75} /> Trophies</Link>
         </div>
       </motion.div>
+
+      {/* Unfinished session — pick up right where you left off. */}
+      {resume && (
+        <div className="card-surface p-4 flex items-center justify-between gap-3 flex-wrap fade-up" style={{ borderColor: "var(--color-brand)", background: "var(--color-tint)" }}>
+          <span className="text-sm flex items-center gap-2">
+            <History size={16} className="text-[var(--color-brand)] shrink-0" />
+            <span><b>Unfinished session:</b> {resume.title} — {resume.done} / {resume.initialTotal} answered</span>
+          </span>
+          <span className="flex gap-2">
+            <button onClick={() => router.push(resume.href)} className="btn btn-primary py-2 text-sm"><Play size={15} /> Resume</button>
+            <button onClick={() => { clearSavedSession(); setResume(null); }} className="btn btn-ghost py-2 text-sm">Discard</button>
+          </span>
+        </div>
+      )}
 
       {/* Stats */}
       <div id="tour-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -133,6 +159,53 @@ export default function Dashboard() {
           </motion.div>
         ))}
       </div>
+
+      {/* Momentum — streak + recent activity, the two most motivating signals. */}
+      {momentum && (
+        <div className="grid md:grid-cols-[minmax(0,1fr)_2fr] gap-3.5">
+          <div className="card-surface p-5 flex items-center gap-4">
+            <span className="grid place-items-center w-14 h-14 rounded-2xl shrink-0 text-[var(--color-hard)]"
+              style={{ background: "color-mix(in srgb, var(--color-hard) 14%, transparent)", boxShadow: "inset 0 1px 0 var(--card-highlight), inset 0 0 0 1px color-mix(in srgb, var(--color-hard) 20%, transparent)" }}>
+              <Flame size={26} strokeWidth={1.75} />
+            </span>
+            <div>
+              <p className="text-3xl font-bold tabular-nums tracking-tight leading-none">
+                <NumberTicker value={momentum.streak} /> <span className="text-base font-medium text-[var(--color-muted)]">day{momentum.streak === 1 ? "" : "s"}</span>
+              </p>
+              <p className="text-sm text-[var(--color-muted)] mt-1">Current streak</p>
+              {momentum.longestStreak > 0 && (
+                <p className="text-xs text-[var(--color-muted)] mt-0.5">Best: {momentum.longestStreak} day{momentum.longestStreak === 1 ? "" : "s"}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="card-surface p-5">
+            <p className="text-sm text-[var(--color-muted)] mb-3 flex items-center gap-2"><CalendarCheck size={15} /> Last 14 days</p>
+            {(() => {
+              const daily = momentum.daily.slice(-14);
+              const maxDaily = Math.max(1, ...daily.map((d) => d.count));
+              return (
+                <div className="flex items-end justify-between gap-1.5 h-20">
+                  {daily.map((d) => (
+                    <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group">
+                      <div className="relative w-full flex items-end justify-center h-full">
+                        <motion.div
+                          className="w-full max-w-[16px] rounded-t bg-[var(--color-brand)]"
+                          initial={{ height: 0 }}
+                          animate={{ height: `${Math.max(d.count > 0 ? 8 : 0, (d.count / maxDaily) * 100)}%` }}
+                          transition={{ duration: 0.5 }}
+                          title={`${d.count} on ${d.date}`}
+                        />
+                      </div>
+                      <span className="text-[9px] text-[var(--color-muted)]">{d.label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Decks */}
       <div id="tour-decks">

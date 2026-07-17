@@ -9,7 +9,7 @@ import ThemeToggle from "./ThemeToggle";
 const LINKS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/study", label: "Study", icon: BookOpen },
-  { href: "/hard", label: "Hard cards", icon: Flame },
+  { href: "/hard", label: "Hard/flagged", icon: Flame },
   { href: "/insights", label: "Insights", icon: BarChart3 },
   { href: "/achievements", label: "Trophies", icon: Trophy },
   { href: "/notebook", label: "Notebook", icon: NotebookPen },

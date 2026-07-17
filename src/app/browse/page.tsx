@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, Plus, Flag, Pencil, Trash2, Loader2, X, Layers, Repeat, Bug, ImagePlus } from "lucide-react";
+import { Search, Plus, Flag, Pencil, Trash2, Loader2, X, Layers, Repeat, Bug, ImagePlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveImageSrc, stripSoundTags } from "@/components/CardFace";
 
 interface Deck { id: string; name: string; }
@@ -57,14 +57,31 @@ function BrowseInner() {
   const [q, setQ] = useState(searchParams.get("q") || "");
   const [deckFilter, setDeckFilter] = useState("");
   const [editing, setEditing] = useState<Partial<Card> | null>(null);
+  // Server-side paging: /api/cards returns one page of 30 when `page` is set.
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const loadCards = useCallback(() => {
     setLoading(true);
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ page: String(page) });
     if (q) params.set("q", q);
     if (deckFilter) params.set("deckId", deckFilter);
-    fetch(`/api/cards?${params}`).then((r) => r.json()).then((d) => { setCards(Array.isArray(d) ? d : []); setLoading(false); });
-  }, [q, deckFilter]);
+    fetch(`/api/cards?${params}`).then((r) => r.json()).then((d) => {
+      const tp = typeof d.totalPages === "number" ? d.totalPages : 1;
+      // If a deletion emptied the page we're on, step back so we're not stranded
+      // on a blank page. (Async setState in a .then, not a synchronous effect.)
+      if (page > tp) { setPage(tp); return; }
+      setCards(Array.isArray(d.cards) ? d.cards : []);
+      setTotal(typeof d.total === "number" ? d.total : 0);
+      setTotalPages(tp);
+      setLoading(false);
+    });
+  }, [q, deckFilter, page]);
+
+  // Searching or switching decks always jumps back to the first page.
+  function changeSearch(v: string) { setQ(v); setPage(1); }
+  function changeDeck(v: string) { setDeckFilter(v); setPage(1); }
 
   useEffect(() => { fetch("/api/decks").then((r) => r.json()).then((d) => setDecks(Array.isArray(d) ? d : [])); }, []);
   useEffect(() => { const t = setTimeout(loadCards, 250); return () => clearTimeout(t); }, [loadCards]);
@@ -76,7 +93,8 @@ function BrowseInner() {
   async function remove(c: Card) {
     if (!confirm("Delete this card?")) return;
     await fetch("/api/cards", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id }) });
-    setCards((list) => list.filter((x) => x.id !== c.id));
+    // Reload from the server so the page refills and the count stays accurate.
+    loadCards();
   }
   async function addReverse(c: Card) {
     await fetch("/api/cards", {
@@ -104,9 +122,9 @@ function BrowseInner() {
       <div className="flex gap-2 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-          <input dir="auto" className="input pl-9" placeholder="Search questions and answers…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input dir="auto" className="input pl-9" placeholder="Search questions and answers…" value={q} onChange={(e) => changeSearch(e.target.value)} />
         </div>
-        <select className="input max-w-[220px]" value={deckFilter} onChange={(e) => setDeckFilter(e.target.value)}>
+        <select className="input max-w-[220px]" value={deckFilter} onChange={(e) => changeDeck(e.target.value)}>
           <option value="">All decks</option>
           {decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
@@ -118,7 +136,9 @@ function BrowseInner() {
         <div className="card-surface p-10 text-center text-[var(--color-muted)]">No cards found.</div>
       ) : (
         <>
-          <p className="text-sm text-[var(--color-muted)] mb-2">{cards.length} card{cards.length === 1 ? "" : "s"}</p>
+          <p className="text-sm text-[var(--color-muted)] mb-2">
+            {total} card{total === 1 ? "" : "s"}{totalPages > 1 && <> · page {page} of {totalPages}</>}
+          </p>
           <div className="space-y-2">
             {cards.map((c) => (
               <div key={c.id} className="card-surface p-4 flex items-start gap-3">
@@ -143,6 +163,16 @@ function BrowseInner() {
               </div>
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}
+                className="btn btn-ghost py-2 px-3 text-sm disabled:opacity-40"><ChevronLeft size={16} /> Prev</button>
+              <span className="text-sm text-[var(--color-muted)] tabular-nums px-2">Page {page} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                className="btn btn-ghost py-2 px-3 text-sm disabled:opacity-40">Next <ChevronRight size={16} /></button>
+            </div>
+          )}
         </>
       )}
 

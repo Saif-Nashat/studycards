@@ -3,8 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BarChart3, Flame, CalendarCheck, Target, Loader2, Layers, TrendingUp } from "lucide-react";
+import { BarChart3, Flame, CalendarCheck, Target, Loader2, Layers, TrendingUp, AlertTriangle } from "lucide-react";
 import NumberTicker from "@/components/NumberTicker";
+
+function accuracyColor(a: number): string {
+  if (a < 50) return "var(--color-again)";
+  if (a < 75) return "var(--color-hard)";
+  return "var(--color-good)";
+}
 
 interface Insights {
   totalReviews: number;
@@ -15,6 +21,7 @@ interface Insights {
   ratingCounts: { again: number; hard: number; good: number; easy: number };
   daily: { date: string; label: string; count: number }[];
   maturity: { total: number; new: number; learning: number; review: number; mature: number };
+  weakDecks: { deckId: string; name: string; total: number; accuracy: number }[];
 }
 
 export default function InsightsPage() {
@@ -126,6 +133,30 @@ export default function InsightsPage() {
             <p className="text-sm text-[var(--color-muted)] mt-4">
               {data.totalReviews} total reviews. A higher Good/Easy share means better recall. 💪
             </p>
+          </div>
+
+          {/* Weak decks */}
+          <div className="card-surface p-6 lg:col-span-2">
+            <h2 className="font-bold mb-1 flex items-center gap-2"><AlertTriangle size={18} className="text-[var(--color-hard)]" /> Your weak decks</h2>
+            <p className="text-sm text-[var(--color-muted)] mb-4">Decks you get right least often (needs at least 3 reviews each). Focus your revision here.</p>
+            {data.weakDecks.length === 0 ? (
+              <p className="text-sm text-[var(--color-muted)]">Not enough data yet — keep studying and your weakest decks will show up here.</p>
+            ) : (
+              <div className="space-y-3">
+                {data.weakDecks.map((d) => (
+                  <div key={d.deckId} className="flex items-center gap-3">
+                    <span className="text-sm font-medium shrink-0 min-w-[120px] max-w-[160px] truncate" title={d.name}>{d.name}</span>
+                    <div className="flex-1 h-2.5 rounded-full bg-[var(--color-track)] overflow-hidden">
+                      <motion.div className="h-full rounded-full" style={{ background: accuracyColor(d.accuracy) }}
+                        initial={{ width: 0 }} animate={{ width: `${d.accuracy}%` }} transition={{ duration: 0.6 }} />
+                    </div>
+                    <span className="text-sm font-semibold w-12 text-right" style={{ color: accuracyColor(d.accuracy) }}>{d.accuracy}%</span>
+                    <Link href={`/study?go=1&mode=all&deckId=${encodeURIComponent(d.deckId)}&deckName=${encodeURIComponent(d.name)}`}
+                      className="btn btn-ghost py-1 px-2.5 text-xs shrink-0">Drill</Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Card maturity */}

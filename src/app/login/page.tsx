@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { GraduationCap, Lock, Loader2, Eye, EyeOff, ArrowRight, Sparkles, User } from "lucide-react";
+import { GraduationCap, Lock, Loader2, Eye, EyeOff, ArrowRight, Sparkles, User, MessageCircle } from "lucide-react";
+
+// Where "Request trial access" sends people: an Instagram DM with the owner.
+// ig.me/m/<username> opens the chat directly in the Instagram app or web.
+const INSTAGRAM_DM_URL = "https://ig.me/m/saif__nashat";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -128,6 +132,16 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+        </div>
+
+        {/* Trial access — no open signup, so new users request an account. */}
+        <div className="card-surface p-4 mt-4 text-center">
+          <p className="text-sm text-[var(--color-muted)] mb-2.5">
+            <b className="text-[var(--color-ink)]">New here?</b> Try MediCards free — request a trial account and we&apos;ll send you a login.
+          </p>
+          <a href={INSTAGRAM_DM_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost w-full py-2.5 text-sm">
+            <MessageCircle size={16} /> Request trial access on Instagram
+          </a>
         </div>
 
         <p className="text-center text-xs text-[var(--color-muted)] mt-5">
