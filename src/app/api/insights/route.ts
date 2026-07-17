@@ -18,7 +18,7 @@ export async function GET() {
   const fourteenAgo = new Date(startOfToday); fourteenAgo.setDate(fourteenAgo.getDate() - 13);
   const windowStart = new Date(startOfToday); windowStart.setDate(windowStart.getDate() - 120);
 
-  const [totalReviews, today, last7, byRating, recent, cards, taggedReviews] = await Promise.all([
+  const [totalReviews, today, last7, byRating, recent, cards] = await Promise.all([
     prisma.review.count({ where: { userId: uid } }),
     prisma.review.count({ where: { userId: uid, reviewedAt: { gte: startOfToday } } }),
     prisma.review.count({ where: { userId: uid, reviewedAt: { gte: sevenAgo } } }),
@@ -29,7 +29,6 @@ export async function GET() {
       orderBy: { reviewedAt: "desc" },
     }),
     prisma.card.findMany({ where: { userId: uid }, select: { state: true, intervalDays: true } }),
-    prisma.review.findMany({ where: { userId: uid }, select: { rating: true, card: { select: { tags: true } } } }),
   ]);
 
   // Rating distribution
@@ -75,26 +74,7 @@ export async function GET() {
 
   const accuracy = totalReviews ? Math.round(((ratingCounts.good + ratingCounts.easy) / totalReviews) * 100) : 0;
 
-  // Weak topics: accuracy per tag (Good/Easy = "got it"). Needs a few reviews to count.
-  const tagStats = new Map<string, { correct: number; total: number }>();
-  for (const r of taggedReviews) {
-    const tags = (r.card?.tags || "").split(",").map((t) => t.trim()).filter(Boolean);
-    const correct = r.rating === "good" || r.rating === "easy";
-    for (const tag of tags) {
-      const s = tagStats.get(tag) || { correct: 0, total: 0 };
-      s.total++;
-      if (correct) s.correct++;
-      tagStats.set(tag, s);
-    }
-  }
-  const MIN_REVIEWS = 3;
-  const weakTopics = Array.from(tagStats.entries())
-    .filter(([, s]) => s.total >= MIN_REVIEWS)
-    .map(([tag, s]) => ({ tag, total: s.total, accuracy: Math.round((s.correct / s.total) * 100) }))
-    .sort((a, b) => a.accuracy - b.accuracy)
-    .slice(0, 8);
-
   return NextResponse.json({
-    totalReviews, today, last7, ratingCounts, daily, streak, maturity, accuracy, weakTopics,
+    totalReviews, today, last7, ratingCounts, daily, streak, maturity, accuracy,
   });
 }

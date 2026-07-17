@@ -4,19 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Tag, Trophy, ArrowRight } from "lucide-react";
-import { groupTags } from "@/lib/tagGroups";
+import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Trophy, ArrowRight } from "lucide-react";
 import NumberTicker from "@/components/NumberTicker";
 
 interface Stats { total: number; due: number; new: number; flagged: number; hard: number; decks: number; reviewedToday: number; }
 interface Deck { id: string; name: string; description: string; total: number; due: number; new: number; }
-interface Tag { tag: string; total: number; ready: number; }
 
 export default function Dashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [decks, setDecks] = useState<Deck[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [newDeck, setNewDeck] = useState("");
   const [deckError, setDeckError] = useState("");
@@ -26,8 +23,7 @@ export default function Dashboard() {
     Promise.all([
       fetch("/api/stats").then((r) => r.json()),
       fetch("/api/decks").then((r) => r.json()),
-      fetch("/api/tags").then((r) => r.json()),
-    ]).then(([s, d, t]) => { setStats(s); setDecks(d); setTags(t); setLoading(false); });
+    ]).then(([s, d]) => { setStats(s); setDecks(d); setLoading(false); });
   }
   useEffect(load, []);
 
@@ -187,32 +183,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      {/* Study by topic — organised into Basic systems vs Medical topics. */}
-      {tags.length > 0 && (
-        <div>
-          <h2 className="font-display text-2xl flex items-center gap-2.5 mb-1"><Tag size={20} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Study by topic</h2>
-          <p className="text-[var(--color-muted)] text-sm mb-4">Drill a single subject across all your decks. The number is how many are ready now.</p>
-          <div className="space-y-5">
-            {groupTags(tags).map((group) => (
-              <div key={group.key}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)] mb-2.5">{group.label}</p>
-                <div className="flex flex-wrap gap-2">
-                  {group.items.map((t) => (
-                    <button key={t.tag}
-                      onClick={() => router.push(`/study?go=1&mode=due&tag=${encodeURIComponent(t.tag)}&tagName=${encodeURIComponent(t.tag)}`)}
-                      className="card-surface card-lift !rounded-full px-4 py-2 text-sm font-medium transition flex items-center gap-2">
-                      {t.tag}
-                      <span className={`text-xs font-bold ${t.ready > 0 ? "text-[var(--color-brand)]" : "text-[var(--color-muted)]"}`}>{t.ready}</span>
-                      <span className="text-xs text-[var(--color-muted)]">/ {t.total}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -104,7 +104,7 @@ function BrowseInner() {
       <div className="flex gap-2 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-          <input dir="auto" className="input pl-9" placeholder="Search questions, answers, tags…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input dir="auto" className="input pl-9" placeholder="Search questions and answers…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select className="input max-w-[220px]" value={deckFilter} onChange={(e) => setDeckFilter(e.target.value)}>
           <option value="">All decks</option>
@@ -132,7 +132,6 @@ function BrowseInner() {
                   <p dir="auto" className="text-sm text-[var(--color-muted)] truncate">{c.type === "list" ? c.back.replace(/[[\]"]/g, "") : stripSoundTags(c.back)}</p>
                   <div className="flex gap-2 mt-1.5 flex-wrap">
                     {c.deck?.name && <span className="text-xs text-[var(--color-muted)]">{c.deck.name}</span>}
-                    {c.tags && <span className="text-xs text-[var(--color-brand)]">{c.tags}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -231,14 +230,9 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
           <label className="block"><span className="text-sm font-medium">Mnemonic (optional)</span>
             <textarea dir="auto" className="input mt-1" rows={2} value={form.mnemonic || ""} onChange={(e) => set("mnemonic", e.target.value)} />
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block"><span className="text-sm font-medium">Tags (comma-separated)</span>
-              <input dir="auto" className="input mt-1" value={form.tags || ""} onChange={(e) => set("tags", e.target.value)} />
-            </label>
-            <label className="block"><span className="text-sm font-medium">Source (optional)</span>
-              <input dir="auto" className="input mt-1" value={form.source || ""} onChange={(e) => set("source", e.target.value)} />
-            </label>
-          </div>
+          <label className="block"><span className="text-sm font-medium">Source (optional)</span>
+            <input dir="auto" className="input mt-1" value={form.source || ""} onChange={(e) => set("source", e.target.value)} />
+          </label>
 
           {/* Images */}
           <div className="grid grid-cols-2 gap-3">

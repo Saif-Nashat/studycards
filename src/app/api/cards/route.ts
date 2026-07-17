@@ -22,13 +22,11 @@ export async function GET(req: Request) {
   const q = searchParams.get("q")?.trim();
   const flagged = searchParams.get("flagged");
   const hard = searchParams.get("hard");
-  const tag = searchParams.get("tag")?.trim();
   const leech = searchParams.get("leech");
   const limit = Math.min(Number(searchParams.get("limit")) || 500, 2000);
 
   const where: Record<string, unknown> = { userId: user.id };
   if (deckId) where.deckId = deckId;
-  if (tag) where.tags = { contains: tag };
   if (leech === "1") where.isLeech = true;
   if (flagged === "1") where.flagged = true;
   // "Hard" collects cards last rated Hard, plus flagged/leech cards. Cards
@@ -41,7 +39,6 @@ export async function GET(req: Request) {
     where.OR = [
       { front: { contains: q } },
       { back: { contains: q } },
-      { tags: { contains: q } },
     ];
   }
 

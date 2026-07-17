@@ -29,8 +29,6 @@ async function sampleCards(where: Prisma.CardWhereInput, cap: number): Promise<C
 // Params:
 //   deckId       optional single deck (legacy)
 //   deckIds      optional comma-separated decks (multi-deck select)
-//   tag          optional single tag (legacy)
-//   tags         optional comma-separated tags (custom test)
 //   mode         "due" | "hard" | "all" | "custom"
 //   source       (custom) "all" | "new" | "unanswered" | "flagged"
 //   limit        (custom) max cards
@@ -42,23 +40,19 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const deckId = searchParams.get("deckId")?.trim() || undefined;
   const deckIdsParam = searchParams.get("deckIds")?.trim() || undefined;
-  const tag = searchParams.get("tag")?.trim() || undefined;
-  const tagsParam = searchParams.get("tags")?.trim() || undefined;
   const mode = searchParams.get("mode") || "due";
   const source = searchParams.get("source") || "all";
   const limit = Math.min(Number(searchParams.get("limit")) || 0, 500);
   const newLimit = Number(searchParams.get("newLimit")) || 20;
   const now = new Date();
 
-  // Base filter shared by all modes: owner + deck(s) + tag(s).
+  // Base filter shared by all modes: owner + deck(s).
   const base: Prisma.CardWhereInput = { userId: user.id };
   // Decks: accept a single `deckId` (legacy) or a comma-separated `deckIds`.
   // No deck given -> every deck. One deck -> exact match. Several -> `in`.
   const deckList = [deckId, ...(deckIdsParam ? deckIdsParam.split(",") : [])].map((d) => d?.trim()).filter(Boolean) as string[];
   if (deckList.length === 1) base.deckId = deckList[0];
   else if (deckList.length > 1) base.deckId = { in: deckList };
-  const tagList = [tag, ...(tagsParam ? tagsParam.split(",") : [])].map((t) => t?.trim()).filter(Boolean) as string[];
-  if (tagList.length) base.OR = tagList.map((t) => ({ tags: { contains: t } }));
 
   if (mode === "custom") {
     const where: Prisma.CardWhereInput = { ...base };

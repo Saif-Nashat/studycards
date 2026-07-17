@@ -61,7 +61,7 @@ export function clearSavedSession() {
   } catch { /* ignore */ }
 }
 
-export default function StudySession({ mode, deckId, deckIds, tag, tags, source, limit, title, timer = "none", pomoFocus = 25, pomoBreak = 5 }: { mode: Mode; deckId?: string; deckIds?: string; tag?: string; tags?: string; source?: string; limit?: number; title: string; timer?: TimerMode; pomoFocus?: number; pomoBreak?: number }) {
+export default function StudySession({ mode, deckId, deckIds, source, limit, title, timer = "none", pomoFocus = 25, pomoBreak = 5 }: { mode: Mode; deckId?: string; deckIds?: string; source?: string; limit?: number; title: string; timer?: TimerMode; pomoFocus?: number; pomoBreak?: number }) {
   // The pomodoro durations are fixed for the life of a session; memoise so the
   // config keeps a stable identity for effect dependencies.
   const pomoCfg = useMemo(() => pomoConfig(pomoFocus, pomoBreak), [pomoFocus, pomoBreak]);
@@ -122,8 +122,6 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
       const params = new URLSearchParams({ mode });
       if (deckId) params.set("deckId", deckId);
       if (deckIds) params.set("deckIds", deckIds);
-      if (tag) params.set("tag", tag);
-      if (tags) params.set("tags", tags);
       if (source) params.set("source", source);
       if (limit) params.set("limit", String(limit));
       try {
@@ -139,7 +137,7 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
       }
     })();
     return () => { cancelled = true; };
-  }, [mode, deckId, deckIds, tag, tags, source, limit]);
+  }, [mode, deckId, deckIds, source, limit]);
 
   // Snapshot the session on every meaningful change. If the queue is too
   // image-heavy for sessionStorage, resume just won't be offered — never fatal.
@@ -336,7 +334,6 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2 flex-wrap items-center">
               {isLeech && <span className="chip" style={{ background: "var(--color-danger-bg)", color: "var(--color-again)" }}><Bug size={12} /> Leech</span>}
-              {current.tags ? current.tags.split(",").filter(Boolean).slice(0, 4).map((t) => <span key={t} className="chip">{t.trim()}</span>) : null}
             </div>
             <motion.button onClick={toggleFlag} whileTap={{ scale: 0.8 }} animate={isFlagged ? { scale: [1, 1.25, 1] } : { scale: 1 }} transition={{ duration: 0.3 }}
               className={`transition-colors ${isFlagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)] hover:text-[var(--color-hard)]"}`}

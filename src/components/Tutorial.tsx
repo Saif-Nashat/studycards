@@ -52,7 +52,7 @@ const STEPS: Step[] = [
     title: "Study & rate cards",
     body: (
       <>
-        <p>The <b>Study</b> page builds custom tests — pick subjects and card types, add an optional timer and goal.</p>
+        <p>The <b>Study</b> page builds custom tests — pick your decks and which cards to include, add an optional timer.</p>
         <p className="mt-2">In a session, press <b>Space</b> to reveal, then rate <b>Again / Hard / Good / Easy</b> (keys <b>1–4</b>) — honest ratings set when each card returns. <b>F</b> flags a card; Hard and flagged cards collect in the <b>Hard</b> pile to drill later.</p>
       </>
     ),
@@ -62,7 +62,7 @@ const STEPS: Step[] = [
     selector: "#tour-insights",
     title: "Track your progress",
     body: (
-      <p><b>Insights</b> tracks your <b>streak</b>, reviews, and all-time accuracy, and surfaces your <b>weakest topics</b> with a Drill button for each. Studying also earns <b>trophies</b> 🏆 — a daily streak is the fastest way to collect them.</p>
+      <p><b>Insights</b> tracks your <b>streak</b>, reviews, all-time accuracy, and how well-learned your collection is. Studying also earns <b>trophies</b> 🏆 — a daily streak is the fastest way to collect them.</p>
     ),
   },
   {

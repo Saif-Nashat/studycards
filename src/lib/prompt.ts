@@ -10,9 +10,9 @@ Turn that material into excellent spaced-repetition flashcards. Follow these rul
 {
   "deck": "<Subject> — <topic>",
   "cards": [
-    { "type": "basic", "front": "A clear question?", "back": "The answer", "extra": "1-2 sentences explaining WHY / the underlying reasoning", "mnemonic": "optional memory aid", "tags": "topic,subtopic", "source": "slide 12 / p.34 / chapter name" },
-    { "type": "cloze", "front": "The powerhouse of the cell is the {{c1::mitochondrion}}.", "extra": "Why this matters.", "tags": "biology", "source": "p.X" },
-    { "type": "list", "front": "Causes / features / steps of …", "back": ["First item", "Second item", "Third item"], "extra": "Brief explanation.", "mnemonic": "optional", "tags": "topic", "source": "p.X" }
+    { "type": "basic", "front": "A clear question?", "back": "The answer", "extra": "1-2 sentences explaining WHY / the underlying reasoning", "mnemonic": "optional memory aid", "source": "slide 12 / p.34 / chapter name" },
+    { "type": "cloze", "front": "The powerhouse of the cell is the {{c1::mitochondrion}}.", "extra": "Why this matters.", "source": "p.X" },
+    { "type": "list", "front": "Causes / features / steps of …", "back": ["First item", "Second item", "Third item"], "extra": "Brief explanation.", "mnemonic": "optional", "source": "p.X" }
   ]
 }
 The JSON must be valid: double quotes, no trailing commas, no comments.
@@ -45,7 +45,6 @@ The JSON must be valid: double quotes, no trailing commas, no comments.
 
 7. NAMING & METADATA:
    - "deck": infer a sensible name from the material, e.g. "Pharmacology — Beta blockers", "Spanish — Food vocabulary", "CS101 — Sorting algorithms".
-   - "tags": 1-3 short lowercase tags per card.
    - "source": slide number, page number or section name when identifiable; otherwise the topic name.
 
 The study material is attached to this message (an attached file, pasted text, or both). Read ALL of it and turn it into cards.`;
