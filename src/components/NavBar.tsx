@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, BookOpen, Flame, Layers, Upload, Settings, LogOut, GraduationCap, BarChart3, NotebookPen, Trophy } from "lucide-react";
+import { Home, BookOpen, Flame, Layers, Settings, LogOut, GraduationCap, BarChart3, NotebookPen } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import HelpCenter from "./HelpCenter";
 
-const LINKS = [
+// `match` lets one nav entry own several routes: Insights covers the Trophies
+// tab, Cards covers the Import tab. The entry stays highlighted on either route,
+// while the in-page tab bar switches between them.
+const LINKS: { href: string; label: string; icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>; match?: string[] }[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/study", label: "Study", icon: BookOpen },
   { href: "/hard", label: "Hard/flagged", icon: Flame },
-  { href: "/insights", label: "Insights", icon: BarChart3 },
-  { href: "/achievements", label: "Trophies", icon: Trophy },
+  { href: "/insights", label: "Insights", icon: BarChart3, match: ["/insights", "/achievements"] },
   { href: "/notebook", label: "Notebook", icon: NotebookPen },
-  { href: "/browse", label: "Browse", icon: Layers },
-  { href: "/import", label: "Import", icon: Upload },
+  { href: "/browse", label: "Cards", icon: Layers, match: ["/browse", "/import"] },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -43,8 +45,10 @@ export default function NavBar() {
         </Link>
 
         <nav className="flex items-center gap-0.5 flex-wrap order-last w-full lg:order-none lg:w-auto lg:flex-1">
-          {LINKS.map(({ href, label, icon: Icon }) => {
-            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          {LINKS.map(({ href, label, icon: Icon, match }) => {
+            const active = href === "/"
+              ? pathname === "/"
+              : (match ?? [href]).some((m) => pathname.startsWith(m));
             return (
               <Link
                 key={href}
@@ -66,6 +70,9 @@ export default function NavBar() {
               </Link>
             );
           })}
+          {/* Sits right after Settings; opens page-specific help for wherever
+              the user currently is. */}
+          <HelpCenter />
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">

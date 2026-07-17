@@ -50,9 +50,8 @@ export default function StoragePanel() {
         <button onClick={load} className="btn btn-ghost py-1.5 px-2.5 text-sm" title="Refresh"><RefreshCw size={14} /></button>
       </div>
       <p className="text-[var(--color-muted)] text-sm mb-4">
-        The database is shared between accounts, and every account owns a fixed slice —
-        yours is <b className="text-[var(--color-ink)]">{usage?.limitMb ?? 75} MB</b>, so nobody can eat into your space.
-        Images and audio from imported decks use the most room. If your share fills up, delete a deck you no longer need.
+        You have <b className="text-[var(--color-ink)]">{usage?.limitMb ?? 75} MB</b> of storage for your cards.
+        Images and audio from imported decks use the most room. If it fills up, delete a deck you no longer need.
       </p>
 
       {loading && !usage ? (

@@ -12,6 +12,7 @@ import {
   evaluateAchievements, totalPoints, TIER_META,
   type AchStats, type EvaluatedAchievement,
 } from "@/lib/achievements";
+import { ProgressTabs } from "@/components/SectionTabs";
 
 // Map the string icon names in the achievement catalogue to real components.
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -64,6 +65,7 @@ export default function AchievementsPage() {
 
   return (
     <div className="space-y-7">
+      <ProgressTabs />
       <div>
         <span className="eyebrow mb-2.5">Milestones</span>
         <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Trophy size={26} strokeWidth={1.75} className="text-[var(--color-gold)]" /> Trophies</h1>

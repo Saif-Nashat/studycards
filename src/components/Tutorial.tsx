@@ -73,7 +73,7 @@ const STEPS: Step[] = [
     color: "var(--color-good)",
     title: "Rate honestly — cards find their rhythm",
     body: (
-      <p>In a session, press <b>Space</b> to reveal the answer, then rate it (keys <b>1–4</b>). <b>Rate honestly and each card finds its own rhythm</b> — easy cards fade far into the future, hard ones come back soon until they stick.</p>
+      <p>In a session, <b>tap the card</b> to reveal the answer (or press <b>Space</b> on a keyboard), then <b>tap a rating button</b> (or press keys <b>1–4</b>). <b>Rate honestly and each card finds its own rhythm</b> — easy cards fade far into the future, hard ones come back soon until they stick.</p>
     ),
     visual: <RatingDemo />,
   },
@@ -114,7 +114,18 @@ const STEPS: Step[] = [
     color: "var(--color-brand)",
     title: "Bring in cards — any subject",
     body: (
-      <p>Two ways in on the <b>Import</b> page: paste cards made with the ready-made <b>claude.ai</b> prompt (drop in any slides, notes or book), or upload an <b>Anki deck (.apkg)</b> — images and audio included. Edit or add cards anytime under <b>Browse</b>.</p>
+      <p>Go to the <b>Import</b> page. There are two ways to add cards:</p>
+    ),
+    visual: (
+      <div className="mt-2 space-y-2 text-sm">
+        <div className="rounded-lg p-2.5 bg-[color-mix(in_srgb,var(--color-brand)_10%,transparent)] border border-[var(--color-hairline)]">
+          <b>1. Make your own with AI.</b> Copy the ready-made <b>claude.ai</b> prompt on the Import page, paste in any slides, notes or book chapter, and it writes the cards for you. Then paste them back in.
+        </div>
+        <div className="rounded-lg p-2.5 bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] border border-[var(--color-hairline)]">
+          <b>2. Upload an Anki deck.</b> Already have a <b>.apkg</b> file? Upload it — images and audio come across too.
+        </div>
+        <p className="text-[var(--color-muted)]">You can edit or add cards by hand anytime under <b>Browse</b>.</p>
+      </div>
     ),
   },
   {

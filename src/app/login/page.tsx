@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { GraduationCap, Lock, Loader2, Eye, EyeOff, ArrowRight, Sparkles, User, MessageCircle } from "lucide-react";
 
-// Where "Request trial access" sends people: an Instagram DM with the owner.
-// ig.me/m/<username> opens the chat directly in the Instagram app or web.
-const INSTAGRAM_DM_URL = "https://ig.me/m/saif__nashat";
+// Where "Request trial access" sends people: a WhatsApp chat with the owner.
+// wa.me/<international number, no +> opens the chat directly in the WhatsApp app
+// or web. 0792704886 is a Jordan (+962) number → 962792704886.
+const WHATSAPP_DM_URL = "https://wa.me/962792704886";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -138,8 +139,8 @@ export default function LoginPage() {
           <p className="text-sm text-[var(--color-muted)] mb-2.5">
             <b className="text-[var(--color-ink)]">New here?</b> Try MediCards free — request a trial account and we&apos;ll send you a login.
           </p>
-          <a href={INSTAGRAM_DM_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost w-full py-2.5 text-sm">
-            <MessageCircle size={16} /> Request trial access on Instagram
+          <a href={WHATSAPP_DM_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost w-full py-2.5 text-sm">
+            <MessageCircle size={16} /> Request trial access on WhatsApp
           </a>
         </div>
 

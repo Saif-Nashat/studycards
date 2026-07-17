@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Plus, Flag, Pencil, Trash2, Loader2, X, Layers, Repeat, Bug, ImagePlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveImageSrc, stripSoundTags } from "@/components/CardFace";
+import { LibraryTabs } from "@/components/SectionTabs";
 
 interface Deck { id: string; name: string; }
 interface Card {
@@ -43,9 +44,12 @@ function fileToResizedDataURL(file: File, maxDim = 800): Promise<string> {
 
 export default function BrowsePage() {
   return (
-    <Suspense fallback={<div className="grid place-items-center py-24 text-[var(--color-muted)]"><Loader2 className="animate-spin" /></div>}>
-      <BrowseInner />
-    </Suspense>
+    <div>
+      <LibraryTabs />
+      <Suspense fallback={<div className="grid place-items-center py-24 text-[var(--color-muted)]"><Loader2 className="animate-spin" /></div>}>
+        <BrowseInner />
+      </Suspense>
+    </div>
   );
 }
 
@@ -57,7 +61,7 @@ function BrowseInner() {
   const [q, setQ] = useState(searchParams.get("q") || "");
   const [deckFilter, setDeckFilter] = useState("");
   const [editing, setEditing] = useState<Partial<Card> | null>(null);
-  // Server-side paging: /api/cards returns one page of 30 when `page` is set.
+  // Server-side paging: /api/cards returns one page of 10 when `page` is set.
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);

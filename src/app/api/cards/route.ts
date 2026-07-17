@@ -18,7 +18,7 @@ const clip = (v: unknown, max: number) => String(v ?? "").slice(0, max);
 //             array — so Browse can paginate a huge collection instead of
 //             loading (and scrolling) all of it. Callers that omit `page`
 //             (e.g. the Hard queue) keep getting the plain array.
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 10;
 
 export async function GET(req: Request) {
   const user = await getUser();

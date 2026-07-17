@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Check, Loader2, NotebookPen, AlertTriangle, CloudOff, RefreshCw,
-  Bold, Italic, Underline, Strikethrough,
-  Heading1, Heading2, List, ListOrdered, Quote, RemoveFormatting,
-  Baseline, Highlighter, Type, AlignLeft, AlignCenter, AlignRight,
+  Check, Loader2, NotebookPen, AlertTriangle, CloudOff, RefreshCw, Eraser,
+  Bold, Underline, Strikethrough,
+  List, ListOrdered, Quote, RemoveFormatting,
+  Highlighter, Type, AlignLeft, AlignCenter, AlignRight,
 } from "lucide-react";
 
 // A self-contained editor for the app-wide notebook. Loads on mount, autosaves
@@ -15,8 +15,7 @@ import {
 // Older notebooks were saved as plain text; we detect that and convert on load so
 // nothing is lost.
 
-const PLACEHOLDER =
-  "Write anything here — summaries, things to look up, mnemonics, reminders. Use the toolbar to add headings, bold, and lists. It stays across all your sessions.";
+const PLACEHOLDER = "Write anything here — it saves automatically.";
 
 // Mirror the server ceiling in /api/notebook so we fail fast with a clear
 // message instead of firing a doomed multi-MB request from a phone.
@@ -61,8 +60,9 @@ type Cmd =
   | { kind: "inline"; command: string }
   | { kind: "block"; tag: string }
   | { kind: "list"; command: "insertUnorderedList" | "insertOrderedList" }
+  | { kind: "listRoman" }
   | { kind: "align"; command: "justifyLeft" | "justifyCenter" | "justifyRight" }
-  | { kind: "color"; command: "foreColor" | "hiliteColor"; value: string }
+  | { kind: "color"; command: "hiliteColor"; value: string }
   | { kind: "fontSize"; value: string }
   | { kind: "clear" };
 
@@ -74,15 +74,18 @@ interface Tool {
   active?: () => boolean;
 }
 
-// Swatches for the text-colour and highlight pickers. Chosen to read well on
-// both light and dark notebook backgrounds.
-const TEXT_COLORS = ["#0b1a10", "#ef4444", "#f59e0b", "#15803d", "#0ea5e9", "#7c3aed", "#db2777", "#0d9488"];
-const HIGHLIGHT_COLORS = ["#fef08a", "#bbf7d0", "#bfdbfe", "#fbcfe8", "#fed7aa", "#ddd6fe", "#a7f3d0", "#fecaca"];
+// Highlight swatches. Highlighted text always gets forced dark ink (see the
+// `.rich-text span[style*="background-color"]` rule in globals.css), so every
+// swatch here must stay LIGHT enough for that dark ink to read — while being
+// saturated enough to show clearly on the dark-theme surface too. That keeps a
+// highlight looking identical and legible in both light and dark themes.
+const HIGHLIGHT_COLORS = ["#fde68a", "#fca5a5", "#fdba74", "#86efac", "#7dd3fc", "#c4b5fd", "#f9a8d4", "#5eead4"];
+// Only three sizes now — mapped onto execCommand's font-size scale. "Small" is
+// the old normal (3), "Medium" the old large (5), "Large" the old huge (6).
 const FONT_SIZES = [
-  { label: "Small", value: "2" },
-  { label: "Normal", value: "3" },
-  { label: "Large", value: "5" },
-  { label: "Huge", value: "6" },
+  { label: "Small", value: "3" },
+  { label: "Medium", value: "5" },
+  { label: "Large", value: "6" },
 ];
 
 export default function NotebookEditor({ compact = false }: { compact?: boolean }) {
@@ -90,8 +93,8 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
   const [loadFailed, setLoadFailed] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [, force] = useState(0); // re-render to refresh toolbar active states
-  // Which colour popover (if any) is open: text colour, highlight, or font size.
-  const [openMenu, setOpenMenu] = useState<null | "text" | "highlight" | "size">(null);
+  // Which popover (if any) is open: list style, highlight colour, or font size.
+  const [openMenu, setOpenMenu] = useState<null | "list" | "highlight" | "size">(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(true);
@@ -235,10 +238,18 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
     try {
       if (cmd.kind === "inline") document.execCommand(cmd.command);
       else if (cmd.kind === "list") document.execCommand(cmd.command);
+      else if (cmd.kind === "listRoman") {
+        // No native "roman list" command: make an ordered list, then switch the
+        // enclosing <ol> to lower-roman numbering via an inline style (which
+        // beats the `list-style: decimal` stylesheet rule).
+        document.execCommand("insertOrderedList");
+        nearestOrderedList()?.style.setProperty("list-style-type", "lower-roman");
+      }
       else if (cmd.kind === "align") document.execCommand(cmd.command);
       else if (cmd.kind === "color") {
-        // Emit inline style spans (not deprecated <font>) so an explicit text
-        // colour always wins over the highlight-legibility default in CSS.
+        // Emit an inline-style span (not the deprecated <font>) carrying the
+        // background-color, which the CSS highlight rule then keys off to force
+        // legible dark ink on top — so highlights read in light and dark alike.
         document.execCommand("styleWithCSS", false, "true");
         document.execCommand(cmd.command, false, cmd.value);
         document.execCommand("styleWithCSS", false, "false");
@@ -262,22 +273,14 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
 
   const tools: (Tool | "divider")[] = [
     { icon: Bold, title: "Bold (Ctrl+B)", cmd: { kind: "inline", command: "bold" }, active: () => queryState("bold") },
-    { icon: Italic, title: "Italic (Ctrl+I)", cmd: { kind: "inline", command: "italic" }, active: () => queryState("italic") },
     { icon: Underline, title: "Underline (Ctrl+U)", cmd: { kind: "inline", command: "underline" }, active: () => queryState("underline") },
     { icon: Strikethrough, title: "Strikethrough", cmd: { kind: "inline", command: "strikeThrough" }, active: () => queryState("strikeThrough") },
     "divider",
-    { icon: Heading1, title: "Heading", cmd: { kind: "block", tag: "h1" }, active: () => currentBlockTag() === "h1" },
-    { icon: Heading2, title: "Subheading", cmd: { kind: "block", tag: "h2" }, active: () => currentBlockTag() === "h2" },
     { icon: Quote, title: "Quote", cmd: { kind: "block", tag: "blockquote" }, active: () => currentBlockTag() === "blockquote" },
-    "divider",
-    { icon: List, title: "Bullet list", cmd: { kind: "list", command: "insertUnorderedList" }, active: () => queryState("insertUnorderedList") },
-    { icon: ListOrdered, title: "Numbered list", cmd: { kind: "list", command: "insertOrderedList" }, active: () => queryState("insertOrderedList") },
     "divider",
     { icon: AlignLeft, title: "Align left", cmd: { kind: "align", command: "justifyLeft" }, active: () => queryState("justifyLeft") },
     { icon: AlignCenter, title: "Align centre", cmd: { kind: "align", command: "justifyCenter" }, active: () => queryState("justifyCenter") },
     { icon: AlignRight, title: "Align right", cmd: { kind: "align", command: "justifyRight" }, active: () => queryState("justifyRight") },
-    "divider",
-    { icon: RemoveFormatting, title: "Clear formatting", cmd: { kind: "clear" } },
   ];
 
   return (
@@ -315,13 +318,21 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
 
         <span className="w-px h-5 bg-[var(--color-line)] mx-1" />
 
-        {/* Text colour */}
-        <MenuButton id="text" icon={Baseline} title="Text colour" openMenu={openMenu} setOpenMenu={setOpenMenu} onRemember={rememberSelection}>
-          <div className="grid grid-cols-4 gap-1.5 w-max">
-            {TEXT_COLORS.map((c) => (
-              <button key={c} type="button" title={c} className="w-6 h-6 rounded-md border border-[var(--color-line)]"
-                style={{ background: c }} onClick={() => run({ kind: "color", command: "foreColor", value: c })} />
-            ))}
+        {/* Lists — bullet / numbered / roman collapsed into one dropdown */}
+        <MenuButton id="list" icon={List} title="Lists" openMenu={openMenu} setOpenMenu={setOpenMenu} onRemember={rememberSelection}>
+          <div className="flex flex-col gap-0.5 w-max">
+            <button type="button" className="rt-size-item flex items-center gap-2 text-left px-2.5 py-1 rounded-md hover:bg-[var(--color-surface-2)] whitespace-nowrap"
+              onClick={() => run({ kind: "list", command: "insertUnorderedList" })}>
+              <List size={14} /> Bullet list
+            </button>
+            <button type="button" className="rt-size-item flex items-center gap-2 text-left px-2.5 py-1 rounded-md hover:bg-[var(--color-surface-2)] whitespace-nowrap"
+              onClick={() => run({ kind: "list", command: "insertOrderedList" })}>
+              <ListOrdered size={14} /> Numbered list
+            </button>
+            <button type="button" className="rt-size-item flex items-center gap-2 text-left px-2.5 py-1 rounded-md hover:bg-[var(--color-surface-2)] whitespace-nowrap"
+              onClick={() => run({ kind: "listRoman" })}>
+              <span className="w-3.5 text-center text-xs font-semibold italic">i</span> Roman list
+            </button>
           </div>
         </MenuButton>
 
@@ -350,6 +361,21 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
             ))}
           </div>
         </MenuButton>
+
+        <span className="w-px h-5 bg-[var(--color-line)] mx-1" />
+
+        {/* Clear formatting — deliberately a labelled, tinted button (not just an
+            icon) so it's obvious and hard to hit by accident. */}
+        <button
+          type="button"
+          title="Clear all formatting from the selected text"
+          aria-label="Clear formatting"
+          className="rt-clear"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => run({ kind: "clear" })}
+        >
+          <Eraser size={14} /> Clear
+        </button>
       </div>
 
       {loadFailed ? (
@@ -388,7 +414,7 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
 // A colour / size popover button: remembers the selection on mousedown (before
 // focus moves to the toolbar), then opens a small palette. Defined at module
 // scope so it isn't re-created on every render of the editor.
-type MenuId = "text" | "highlight" | "size";
+type MenuId = "list" | "highlight" | "size";
 function MenuButton({
   id, icon: Icon, title, openMenu, setOpenMenu, onRemember, children,
 }: {
@@ -420,6 +446,15 @@ function MenuButton({
       )}
     </span>
   );
+}
+
+// The <ol> the caret currently sits inside, if any — used to retag a fresh
+// ordered list as lower-roman.
+function nearestOrderedList(): HTMLElement | null {
+  const sel = window.getSelection();
+  const node = sel && sel.rangeCount > 0 ? sel.anchorNode : null;
+  const el = node ? (node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element)) : null;
+  return (el?.closest?.("ol") as HTMLElement | null) ?? null;
 }
 
 // Whether the given inline/list command is currently applied at the caret.

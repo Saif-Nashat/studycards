@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles, Lightbulb, Copy, Check } from "lucide-react";
 import { startImport, dismissImport, useImportState } from "@/lib/importManager";
 import { CLAUDE_PROMPT } from "@/lib/prompt";
+import { LibraryTabs } from "@/components/SectionTabs";
 
 interface Deck { id: string; name: string; }
 
@@ -15,17 +16,17 @@ export default function ImportPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
+      <LibraryTabs />
       <span className="eyebrow mb-2.5">Library intake</span>
       <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><Upload size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Import cards</h1>
-      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with AI on claude.ai, or load a free community Anki deck.</p>
+      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] font-medium underline underline-offset-2 hover:opacity-80">claude AI</a>, or load a free community Anki deck.</p>
 
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
         <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
         <span>
-          <b className="text-[var(--color-ink)]">Use any material you like.</b> Turn university slides, textbooks, lecture notes or
-          articles into flashcards as CSV or JSON — and get creative: it doesn&apos;t have to be medicine. Language vocabulary,
-          law, history, coding, exam prep of any kind… if it fits on a flashcard, you can study it here. Cards can be written
-          in <b className="text-[var(--color-ink)]">any language</b> — Arabic and other right-to-left scripts display correctly, and you can even mix languages on the same card.
+          <b className="text-[var(--color-ink)]">Use any material you like.</b> Slides, textbooks, notes or articles — any subject,
+          not just medicine. Cards work in <b className="text-[var(--color-ink)]">any language</b>, including Arabic and other
+          right-to-left scripts.
         </span>
       </div>
 
@@ -184,11 +185,11 @@ function ApkgImport() {
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
         <span>
-          <b className="text-[var(--color-ink)]">Free USMLE / OB-GYN decks:</b> get free community Anki decks from{" "}
+          <b className="text-[var(--color-ink)]">Free decks:</b> get free community Anki decks from{" "}
           <a href="https://ankiweb.net/shared/decks" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">ankiweb.net/shared</a> — search
           for <a href="https://ankiweb.net/shared/decks?search=anking" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">AnKing</a>,{" "}
           <a href="https://ankiweb.net/shared/decks?search=zanki" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">Zanki</a>, or{" "}
-          <a href="https://ankiweb.net/shared/decks?search=lightyear" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">Lightyear</a> (Step 1 &amp; 2).
+          <a href="https://ankiweb.net/shared/decks?search=lightyear" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">Lightyear</a> (USMLE Step 1 &amp; 2).
           Download the <code>.apkg</code> file and load it below. These are free and community-made, so double-check facts as you study.
         </span>
       </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { BarChart3, Flame, CalendarCheck, Target, Loader2, Layers, TrendingUp, AlertTriangle } from "lucide-react";
 import NumberTicker from "@/components/NumberTicker";
+import { ProgressTabs } from "@/components/SectionTabs";
 
 function accuracyColor(a: number): string {
   if (a < 50) return "var(--color-again)";
@@ -63,6 +64,7 @@ export default function InsightsPage() {
 
   return (
     <div className="space-y-7">
+      <ProgressTabs />
       <div>
         <span className="eyebrow mb-2.5">Performance</span>
         <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><BarChart3 size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> My insights</h1>

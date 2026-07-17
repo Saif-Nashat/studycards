@@ -443,6 +443,19 @@ html[data-theme="dark"] .grain { opacity: 0.07; }
 .rt-tool:hover { background: var(--color-surface-2); }
 .rt-tool[data-active="true"] { background: var(--color-chip-bg); border-color: var(--color-line); color: var(--color-chip-ink); }
 
+/* Clear-formatting button: a labelled, tinted pill so it's clearly set apart
+   from the icon-only tools and reads as a distinct "reset" action. */
+.rt-clear {
+  display: inline-flex; align-items: center; gap: .35rem;
+  height: 2rem; padding: 0 .7rem; border-radius: .55rem; cursor: pointer;
+  font-size: .78rem; font-weight: 600; letter-spacing: .01em;
+  color: var(--color-again);
+  background: color-mix(in srgb, var(--color-again) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-again) 34%, transparent);
+  transition: background .25s var(--ease-lux), border .25s var(--ease-lux);
+}
+.rt-clear:hover { background: color-mix(in srgb, var(--color-again) 20%, transparent); }
+
 /* ---- Phone performance ----
    The decorative atmosphere is the main cause of phone jank: three large
    blur(90px) blobs animating forever, a full-screen grain overlay, and a
