@@ -72,7 +72,6 @@ export default function LoginPage() {
           <h1 className="font-display text-4xl tracking-tight">
             <span className="text-gradient">MediCards</span>
           </h1>
-          <p className="text-[var(--color-muted)] text-sm mt-1.5">Your private MRCOG &amp; USMLE flashcards</p>
         </div>
 
         {/* Double-bezel shell: a soft outer tray holding the glass form. */}
