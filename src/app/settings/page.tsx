@@ -3,6 +3,7 @@
 import { Settings, LifeBuoy, Phone, GraduationCap, PlayCircle } from "lucide-react";
 import StoragePanel from "@/components/StoragePanel";
 import ResetProgressPanel from "@/components/ResetProgressPanel";
+import TrialResetPanel from "@/components/TrialResetPanel";
 import { OPEN_TUTORIAL_EVENT } from "@/components/Tutorial";
 
 export default function SettingsPage() {
@@ -29,6 +30,9 @@ export default function SettingsPage() {
 
       {/* Reset progress */}
       <ResetProgressPanel />
+
+      {/* Trial-only: full reset for the shared trial account */}
+      <TrialResetPanel />
 
       {/* Customer support */}
       <section className="card-surface p-6">
