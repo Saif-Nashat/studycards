@@ -94,15 +94,24 @@ export function parseImport(input: string): ParseResult {
   // CSV / TSV: each line "front<sep>back<sep>tags". Detect separator.
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   const cards: ParsedCard[] = [];
-  for (const line of lines) {
+  for (const [i, line] of lines.entries()) {
     const sep = line.includes("\t") ? "\t" : line.includes(";") ? ";" : ",";
     const parts = line.split(sep);
     const front = (parts[0] || "").trim();
     if (!front) continue;
+    const back = (parts[1] || "").trim();
+    // Spreadsheet exports usually start with a header row ("front,back" /
+    // "Question;Answer") — that's labels, not a card.
+    if (i === 0 && /^(front|question|q)$/i.test(front) && /^(back|answer|a)$/i.test(back)) continue;
+    // A line with cloze markers is a card all by itself — no answer column needed.
+    const isCloze = /\{\{c\d+::/.test(front);
+    // A line with no answer isn't a card, it's prose (pasting an essay used to
+    // create one junk answerless card per line).
+    if (!isCloze && !back) continue;
     cards.push({
-      type: "basic",
+      type: isCloze ? "cloze" : "basic",
       front,
-      back: (parts[1] || "").trim(),
+      back: isCloze ? "" : back,
       extra: "",
       mnemonic: "",
       tags: (parts[2] || "").trim(),

@@ -1,5 +1,5 @@
-// The copy-paste prompt the user gives to an AI chatbot (claude.ai recommended;
-// ChatGPT and Gemini work too) to generate import-ready cards.
+// The copy-paste prompt the user gives to claude.ai to generate
+// import-ready cards. Copied from the Import page.
 // Deliberately subject-agnostic: the app started with MRCOG/USMLE but people now
 // study university slides, notes, books, languages, law, code — anything.
 export const CLAUDE_PROMPT = `You are an expert flashcard author. I will paste study material below — it could be anything: textbook pages, university lecture slides, my own notes, an article, exam revision notes, language vocabulary, legal cases, code documentation, formulas… any subject, any format.

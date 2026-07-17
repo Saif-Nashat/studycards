@@ -1,22 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Settings, Copy, Check, LifeBuoy, Sparkles, Package, Phone, GraduationCap, PlayCircle } from "lucide-react";
-import { CLAUDE_PROMPT } from "@/lib/prompt";
+import { Settings, LifeBuoy, Package, Phone, GraduationCap, PlayCircle } from "lucide-react";
 import StoragePanel from "@/components/StoragePanel";
 import ResetProgressPanel from "@/components/ResetProgressPanel";
 import { OPEN_TUTORIAL_EVENT } from "@/components/Tutorial";
 
 export default function SettingsPage() {
-  const [copied, setCopied] = useState(false);
-
-  function copyPrompt() {
-    navigator.clipboard.writeText(CLAUDE_PROMPT);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -37,24 +27,6 @@ export default function SettingsPage() {
 
       {/* Storage */}
       <StoragePanel />
-
-      {/* Prompt */}
-      <section id="tour-prompt" className="card-surface p-6">
-        <h2 className="text-lg font-bold flex items-center gap-2 mb-1"><Sparkles size={18} className="text-[var(--color-brand)]" /> Make cards with AI</h2>
-        <p className="text-[var(--color-muted)] text-sm mb-2">
-          1. Click copy below. 2. Paste it into your AI chat — <b>claude.ai</b> gives the best cards, but <b>ChatGPT</b> and{" "}
-          <b>Gemini</b> work too. 3. Replace the last line with text from
-          <b> any study material</b>. 4. The AI replies with a JSON block — copy it. 5. Paste it into the <b>Import</b> page here.
-        </p>
-        <p className="text-[var(--color-muted)] text-sm mb-4">
-          📚 It doesn&apos;t have to be an MRCOG PDF — paste <b>university slides, lecture notes, textbook chapters,
-          articles, case notes, code documentation, language vocabulary</b>… anything you want to learn, on any subject.
-          The prompt adapts to whatever material you give it.
-        </p>
-        <button onClick={copyPrompt} className="btn btn-primary text-sm">
-          {copied ? <><Check size={16} /> Copied — now paste it into your AI chat</> : <><Copy size={16} /> Copy the prompt</>}
-        </button>
-      </section>
 
       {/* Free decks */}
       <section className="card-surface p-6">

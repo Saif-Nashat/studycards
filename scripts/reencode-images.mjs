@@ -17,7 +17,6 @@
 //
 // Never touched: gif (animation would break), svg, anything already webp,
 // anything whose re-encode fails validation or comes out bigger.
-// Run `npm run backup` first for a belt-and-braces full-DB backup.
 import { PrismaClient } from "@prisma/client";
 import sharp from "sharp";
 import fs from "fs";

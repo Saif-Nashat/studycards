@@ -39,3 +39,27 @@ test("still parses plain CSV lines", () => {
   assert.equal(res.cards[1].back, "Paris");
   assert.equal(res.cards[1].tags, "geography");
 });
+
+test("skips a CSV header row instead of importing it as a card", () => {
+  const res = parseImport("front,back\nWhat is QA?,Quality assurance\nCSV row two?,Yes");
+  assert.equal(res.cards.length, 2);
+  assert.equal(res.cards[0].front, "What is QA?");
+});
+
+test("skips a Question/Answer style header row too", () => {
+  const res = parseImport("Question;Answer;Tags\nWhat is 2+2?;4;maths");
+  assert.equal(res.cards.length, 1);
+  assert.equal(res.cards[0].front, "What is 2+2?");
+});
+
+test("prose lines without an answer are not turned into cards", () => {
+  const res = parseImport("This is just an essay paragraph.\nAnother line of plain prose without separators.");
+  assert.equal(res.cards.length, 0);
+});
+
+test("CSV cloze lines keep working even with no answer column", () => {
+  const res = parseImport("The heart has {{c1::four}} chambers.\nWhat is 2+2?,4");
+  assert.equal(res.cards.length, 2);
+  assert.equal(res.cards[0].type, "cloze");
+  assert.equal(res.cards[1].back, "4");
+});

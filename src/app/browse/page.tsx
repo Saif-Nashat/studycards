@@ -162,10 +162,11 @@ function BrowseInner() {
 function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; decks: Deck[]; onClose: () => void; onSaved: () => void; }) {
   const [form, setForm] = useState<Partial<Card>>(card);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [alsoReverse, setAlsoReverse] = useState(false);
   const isNew = !card.id;
 
-  function set<K extends keyof Card>(k: K, v: Card[K]) { setForm((f) => ({ ...f, [k]: v })); }
+  function set<K extends keyof Card>(k: K, v: Card[K]) { setForm((f) => ({ ...f, [k]: v })); setError(""); }
 
   async function pickImage(side: "imageFront" | "imageBack", e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -174,7 +175,10 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
   }
 
   async function save() {
-    if (!form.front?.trim() || !form.deckId) { alert("Please fill in the question and pick a deck."); return; }
+    if (!form.deckId) { setError("Pick a deck for this card."); return; }
+    if (!form.front?.trim()) { setError(form.type === "cloze" ? "The cloze text can't be empty — write the sentence with its hidden part." : "The question can't be empty — write what the card should ask."); return; }
+    if (form.type === "cloze" && !/\{\{c\d+::/.test(form.front)) { setError("A cloze card needs at least one blank — wrap the hidden text like {{c1::answer}}."); return; }
+    if (form.type !== "cloze" && !form.back?.trim()) { setError("The answer can't be empty — write what the card should teach."); return; }
     setSaving(true);
     if (isNew) {
       await fetch("/api/cards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
@@ -199,7 +203,7 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
           <div className="grid grid-cols-2 gap-3">
-            <label className="block"><span className="text-sm font-medium">Deck</span>
+            <label className="block"><span className="text-sm font-medium">Deck <span className="text-[var(--color-again)]">*</span></span>
               <select className="input mt-1" value={form.deckId || ""} onChange={(e) => set("deckId", e.target.value)}>
                 <option value="">Choose…</option>
                 {decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -213,12 +217,12 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
               </select>
             </label>
           </div>
-          <label className="block"><span className="text-sm font-medium">Question / front{form.type === "cloze" ? " (use {{c1::hidden text}})" : ""}</span>
-            <textarea dir="auto" className="input mt-1" rows={3} value={form.front || ""} onChange={(e) => set("front", e.target.value)} />
+          <label className="block"><span className="text-sm font-medium">Question / front{form.type === "cloze" ? " (use {{c1::hidden text}})" : ""} <span className="text-[var(--color-again)]">*</span></span>
+            <textarea dir="auto" className="input mt-1" rows={3} required value={form.front || ""} onChange={(e) => set("front", e.target.value)} />
           </label>
           {form.type !== "cloze" && (
-            <label className="block"><span className="text-sm font-medium">Answer / back{form.type === "list" ? " (one item per line)" : ""}</span>
-              <textarea dir="auto" className="input mt-1" rows={3} value={form.back || ""} onChange={(e) => set("back", e.target.value)} />
+            <label className="block"><span className="text-sm font-medium">Answer / back{form.type === "list" ? " (one item per line)" : ""} <span className="text-[var(--color-again)]">*</span></span>
+              <textarea dir="auto" className="input mt-1" rows={3} required value={form.back || ""} onChange={(e) => set("back", e.target.value)} />
             </label>
           )}
           <label className="block"><span className="text-sm font-medium">Explanation — why it&apos;s correct (optional)</span>
@@ -280,6 +284,7 @@ function EditModal({ card, decks, onClose, onSaved }: { card: Partial<Card>; dec
             </div>
           )}
         </div>
+        {error && <p className="text-sm text-[var(--color-again)] mt-3">{error}</p>}
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="btn btn-ghost">Cancel</button>
           <button onClick={save} className="btn btn-primary" disabled={saving}>{saving ? <Loader2 className="animate-spin" size={16} /> : "Save"}</button>

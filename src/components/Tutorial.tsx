@@ -86,7 +86,7 @@ const STEPS: Step[] = [
     selector: "#tour-import",
     title: "Import from any material",
     body: (
-      <p>Two ways in: paste <b>AI cards</b> (JSON/CSV), or upload an <b>Anki deck (.apkg)</b> — images included. <b>Settings</b> has a ready-made prompt: drop it into claude.ai (best results), ChatGPT or Gemini with any material (slides, notes, books, any language) and paste the cards back here.</p>
+      <p>Two ways in: paste <b>AI cards</b> (JSON/CSV), or upload an <b>Anki deck (.apkg)</b> — images included. This page has a ready-made prompt with a <b>Copy</b> button: drop it into <b>claude.ai</b> with any material (slides, notes, books, any language) and paste the cards back here.</p>
     ),
   },
   {

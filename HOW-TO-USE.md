@@ -44,7 +44,7 @@ No coding needed. Just follow the steps.
 
 ## ✍️ 4. Make new cards (free, using claude.ai)
 
-1. Go to the **Settings** page in the app and click **Copy** on the prompt.
+1. Go to the **Import** page in the app and click **Copy** on the prompt.
 2. Open **claude.ai** in your browser and paste the prompt.
 3. Open your **MRCOG PDF**, copy the text of a section, and paste it where the prompt says
    `<<< PASTE YOUR BOOK TEXT HERE >>>`. Send it.

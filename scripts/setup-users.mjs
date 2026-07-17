@@ -18,13 +18,13 @@ const prisma = new PrismaClient();
 
 // Roles + storage shares (public knowledge; fine to keep in the repo).
 const USERS = [
-  { username: "saif",     displayName: "Saif",      role: "member", storageLimitMb: 75 },
-  { username: "student1", displayName: "Student 1", role: "member", storageLimitMb: 75 },
-  { username: "student2", displayName: "Student 2", role: "member", storageLimitMb: 75 },
-  { username: "student3", displayName: "Student 3", role: "member", storageLimitMb: 75 },
-  { username: "student4", displayName: "Student 4", role: "member", storageLimitMb: 75 },
-  { username: "student5", displayName: "Student 5", role: "member", storageLimitMb: 75 },
-  { username: "trial",    displayName: "Trial",     role: "trial",  storageLimitMb: 50 },
+  { username: "saif",   displayName: "Saif",    role: "member", storageLimitMb: 75 },
+  { username: "medic1", displayName: "Medic 1", role: "member", storageLimitMb: 75 },
+  { username: "medic2", displayName: "Medic 2", role: "member", storageLimitMb: 75 },
+  { username: "medic3", displayName: "Medic 3", role: "member", storageLimitMb: 75 },
+  { username: "medic4", displayName: "Medic 4", role: "member", storageLimitMb: 75 },
+  { username: "medic5", displayName: "Medic 5", role: "member", storageLimitMb: 75 },
+  { username: "guest",  displayName: "Guest",   role: "trial",  storageLimitMb: 50 },
 ];
 
 // Read passwords from the credentials sheet's markdown table:

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles, Lightbulb } from "lucide-react";
+import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles, Lightbulb, Copy, Check } from "lucide-react";
 import { startImport, dismissImport, useImportState } from "@/lib/importManager";
+import { CLAUDE_PROMPT } from "@/lib/prompt";
 
 interface Deck { id: string; name: string; }
 
@@ -16,7 +17,7 @@ export default function ImportPage() {
     <div className="max-w-3xl mx-auto">
       <span className="eyebrow mb-2.5">Library intake</span>
       <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><Upload size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Import cards</h1>
-      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with AI — claude.ai, ChatGPT or Gemini — or load a free community Anki deck.</p>
+      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with AI on claude.ai, or load a free community Anki deck.</p>
 
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
         <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
@@ -39,6 +40,7 @@ export default function ImportPage() {
 }
 
 function TextImport({ decks }: { decks: Deck[] }) {
+  const [copied, setCopied] = useState(false);
   const [text, setText] = useState("");
   const [deckMode, setDeckMode] = useState<"existing" | "new">(decks.length ? "existing" : "new");
   const [deckId, setDeckId] = useState("");
@@ -47,6 +49,12 @@ function TextImport({ decks }: { decks: Deck[] }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
   const [error, setError] = useState("");
+
+  function copyPrompt() {
+    navigator.clipboard.writeText(CLAUDE_PROMPT);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -79,9 +87,14 @@ function TextImport({ decks }: { decks: Deck[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
-        <Sparkles size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Need cards? Use the ready-made prompt on the <Link href="/settings" className="text-[var(--color-brand)] font-medium">Settings</Link> page in claude.ai (best results), ChatGPT or Gemini, then paste the result here (or upload the .json/.csv file). Any source works — paste from your own slides, notes or a book, on any subject you want to learn.</span>
+      <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] space-y-3">
+        <div className="flex gap-3">
+          <Sparkles size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
+          <span>Need cards? Copy the ready-made prompt below and paste it into <b className="text-[var(--color-ink)]">claude.ai</b> along with any material — your own slides, notes or a book, on any subject you want to learn. Claude replies with a JSON block: paste it here (or upload the .json/.csv file).</span>
+        </div>
+        <button onClick={copyPrompt} className="btn btn-primary text-sm">
+          {copied ? <><Check size={16} /> Copied — now paste it into claude.ai</> : <><Copy size={16} /> Copy the prompt</>}
+        </button>
       </div>
 
       <div className="card-surface p-5 space-y-3">

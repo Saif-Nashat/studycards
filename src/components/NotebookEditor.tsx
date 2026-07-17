@@ -194,24 +194,34 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
     });
   }, []);
 
-  // Compress pasted images before they enter the note; let text/HTML paste as
-  // normal.
+  // Compress pasted images before they enter the note. Everything else pastes
+  // as PLAIN text: a native paste carries the source page's fonts, colours and
+  // highlights into the note, and that styling is almost never what the user
+  // wants — formatting belongs to the toolbar here, not to wherever the text
+  // was copied from.
   const onPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     const items = e.clipboardData?.items;
     if (!items) return;
     const imageItem = Array.from(items).find((it) => it.kind === "file" && it.type.startsWith("image/"));
-    if (!imageItem) return;
-    const file = imageItem.getAsFile();
-    if (!file) return;
+    if (imageItem) {
+      const file = imageItem.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      compressImageToDataUrl(file)
+        .then((url) => {
+          if (!url || !editorRef.current) return;
+          editorRef.current.focus();
+          document.execCommand("insertHTML", false, `<img src="${url}" style="max-width:100%">`);
+          save();
+        })
+        .catch(() => { /* drop the paste rather than bloat the note past the limit */ });
+      return;
+    }
     e.preventDefault();
-    compressImageToDataUrl(file)
-      .then((url) => {
-        if (!url || !editorRef.current) return;
-        editorRef.current.focus();
-        document.execCommand("insertHTML", false, `<img src="${url}" style="max-width:100%">`);
-        save();
-      })
-      .catch(() => { /* drop the paste rather than bloat the note past the limit */ });
+    const text = e.clipboardData.getData("text/plain");
+    // insertText (not innerHTML surgery) keeps the caret position, the user's
+    // undo history, and any formatting they've already toggled on at the caret.
+    if (text) document.execCommand("insertText", false, text);
   }, [save]);
 
   // Apply a formatting command to the current selection, then keep focus + save.

@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [newDeck, setNewDeck] = useState("");
+  const [deckError, setDeckError] = useState("");
   const [creating, setCreating] = useState(false);
 
   function load() {
@@ -32,7 +33,11 @@ export default function Dashboard() {
 
   async function createDeck(e: React.FormEvent) {
     e.preventDefault();
-    if (!newDeck.trim()) return;
+    if (!newDeck.trim()) {
+      setDeckError("Give your deck a name first — type it in the box, then press Add deck.");
+      return;
+    }
+    setDeckError("");
     setCreating(true);
     await fetch("/api/decks", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -139,9 +144,12 @@ export default function Dashboard() {
           <h2 className="font-display text-2xl flex items-center gap-2.5"><Layers size={20} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Your decks</h2>
         </div>
 
-        <form onSubmit={createDeck} className="flex gap-2 mb-5">
-          <input className="input max-w-xs" placeholder="New deck name (e.g. Anatomy)" value={newDeck} onChange={(e) => setNewDeck(e.target.value)} />
-          <button className="btn btn-ghost" disabled={creating}>{creating ? <Loader2 className="animate-spin" size={16} /> : <><Plus size={16} /> Add deck</>}</button>
+        <form onSubmit={createDeck} className="mb-5">
+          <div className="flex gap-2">
+            <input className="input max-w-xs" placeholder="New deck name (e.g. Anatomy)" value={newDeck} onChange={(e) => { setNewDeck(e.target.value); if (deckError) setDeckError(""); }} />
+            <button className="btn btn-ghost" disabled={creating}>{creating ? <Loader2 className="animate-spin" size={16} /> : <><Plus size={16} /> Add deck</>}</button>
+          </div>
+          {deckError && <p className="text-sm text-[var(--color-again)] mt-1.5">{deckError}</p>}
         </form>
 
         {decks.length === 0 ? (

@@ -36,7 +36,7 @@ function addDays(date: Date, days: number): Date {
  * Calculate the next scheduling state for a card after a review.
  */
 export function schedule(card: SrsState, rating: Rating, now: Date = new Date()): SrsResult {
-  let { state, intervalDays, ease, reps, lapses } = card;
+  const { state, intervalDays, ease, reps, lapses } = card;
 
   if (state === "new" || state === "learning") {
     // Card is still being learned.
