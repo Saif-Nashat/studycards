@@ -48,6 +48,4 @@ The JSON must be valid: double quotes, no trailing commas, no comments.
    - "tags": 1-3 short lowercase tags per card.
    - "source": slide number, page number or section name when identifiable; otherwise the topic name.
 
-Here is the material:
-
-<<< PASTE YOUR STUDY MATERIAL HERE — slides, notes, book text, anything >>>`;
+The study material is attached to this message (an attached file, pasted text, or both). Read ALL of it and turn it into cards.`;

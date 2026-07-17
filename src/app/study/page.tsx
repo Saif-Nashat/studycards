@@ -3,8 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Play, FlaskConical, Flame, BookOpen, Timer, Coffee, Target, CircleOff, Layers } from "lucide-react";
-import StudySession from "@/components/StudySession";
+import { Loader2, Play, FlaskConical, Flame, BookOpen, Timer, Coffee, CircleOff, Layers, History } from "lucide-react";
+import StudySession, { readSavedSession, clearSavedSession, type SavedSession } from "@/components/StudySession";
 import { parseTimerMode, DEFAULT_POMODORO, POMO_LIMITS, type TimerMode } from "@/lib/timer";
 import { groupTags } from "@/lib/tagGroups";
 
@@ -26,8 +26,6 @@ function StudyInner() {
     const timer = parseTimerMode(params.get("timer"));
     const pomoFocus = Number(params.get("focus")) || undefined;
     const pomoBreak = Number(params.get("break")) || undefined;
-    const goalCards = Number(params.get("goalCards")) || undefined;
-    const goalMinutes = Number(params.get("goalMin")) || undefined;
 
     const deckCount = deckIds ? deckIds.split(",").filter(Boolean).length : 0;
     const title = mode === "custom" ? "Custom test"
@@ -36,7 +34,7 @@ function StudyInner() {
       : deckCount > 0 ? `Studying: ${deckCount} deck${deckCount === 1 ? "" : "s"}`
       : "Studying all due cards";
 
-    return <StudySession mode={mode} deckId={deckId} deckIds={deckIds} tag={tag} tags={tags} source={source} limit={limit} title={title} timer={timer} pomoFocus={pomoFocus} pomoBreak={pomoBreak} goalCards={goalCards} goalMinutes={goalMinutes} />;
+    return <StudySession mode={mode} deckId={deckId} deckIds={deckIds} tag={tag} tags={tags} source={source} limit={limit} title={title} timer={timer} pomoFocus={pomoFocus} pomoBreak={pomoBreak} />;
   }
 
   return <TestBuilder />;
@@ -57,8 +55,9 @@ function TestBuilder() {
   const [timerMode, setTimerMode] = useState<TimerMode>("none");
   const [pomoFocus, setPomoFocus] = useState(DEFAULT_POMODORO.focus);
   const [pomoBreak, setPomoBreak] = useState(DEFAULT_POMODORO.break);
-  const [goalType, setGoalType] = useState<"none" | "cards" | "time">("none");
-  const [goalValue, setGoalValue] = useState(20);
+  // An unfinished session (navigated away, discarded phone tab) the user can
+  // jump back into instead of building a new test.
+  const [resume, setResume] = useState<SavedSession | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -67,6 +66,7 @@ function TestBuilder() {
     ]).then(([t, d]) => {
       setTags(Array.isArray(t) ? t : []);
       setDecks(Array.isArray(d) ? d : []);
+      setResume(readSavedSession());
       setLoading(false);
     });
   }, []);
@@ -79,21 +79,14 @@ function TestBuilder() {
     setSelectedDecks((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
 
-  function pickGoal(type: "none" | "cards" | "time") {
-    setGoalType(type);
-    // Sensible starting numbers for each goal kind.
-    if (type === "cards") setGoalValue(20);
-    if (type === "time") setGoalValue(25);
-  }
-
   function startTest() {
+    // Starting a fresh test replaces any lingering unfinished session.
+    clearSavedSession();
     const p = new URLSearchParams({ go: "1", mode: "custom", source, limit: String(count) });
     if (selectedDecks.size) p.set("deckIds", Array.from(selectedDecks).join(","));
     if (selected.size) p.set("tags", Array.from(selected).join(","));
     if (timerMode !== "none") p.set("timer", timerMode);
     if (timerMode === "pomodoro") { p.set("focus", String(pomoFocus)); p.set("break", String(pomoBreak)); }
-    if (goalType === "cards" && goalValue > 0) p.set("goalCards", String(goalValue));
-    if (goalType === "time" && goalValue > 0) p.set("goalMin", String(goalValue));
     router.push(`/study?${p}`);
   }
 
@@ -110,17 +103,25 @@ function TestBuilder() {
     { key: "pomodoro", label: "Pomodoro", desc: "Focus / break cycles you set", icon: Coffee },
   ];
 
-  const GOALS: { key: typeof goalType; label: string; desc: string }[] = [
-    { key: "none", label: "No goal", desc: "Study until the queue runs out" },
-    { key: "cards", label: "Cards solved", desc: "Celebrate after N cards answered" },
-    { key: "time", label: "Time studied", desc: "Celebrate after N focused minutes" },
-  ];
-
   return (
     <div className="max-w-3xl mx-auto">
       <span className="eyebrow mb-2.5">Session builder</span>
       <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><FlaskConical size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Create a test</h1>
       <p className="text-[var(--color-muted)] mb-5 mt-1">Pick your subjects and which cards to include, then start. Or use a quick option below.</p>
+
+      {/* Unfinished session — offer to pick up right where the user left off. */}
+      {resume && (
+        <div className="card-surface p-4 mb-5 flex items-center justify-between gap-3 flex-wrap fade-up" style={{ borderColor: "var(--color-brand)", background: "var(--color-tint)" }}>
+          <span className="text-sm flex items-center gap-2">
+            <History size={16} className="text-[var(--color-brand)] shrink-0" />
+            <span><b>Unfinished session:</b> {resume.title} — {resume.done} / {resume.initialTotal} answered</span>
+          </span>
+          <span className="flex gap-2">
+            <button onClick={() => router.push(resume.href)} className="btn btn-primary py-2 text-sm"><Play size={15} /> Resume</button>
+            <button onClick={() => { clearSavedSession(); setResume(null); }} className="btn btn-ghost py-2 text-sm">Discard</button>
+          </span>
+        </div>
+      )}
 
       {/* Quick options */}
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -262,35 +263,6 @@ function TestBuilder() {
                 <p className="text-xs text-[var(--color-muted)] mt-3">
                   ☕ During a break the cards pause and a countdown appears — you can always skip the break early.
                 </p>
-              </div>
-            )}
-          </div>
-
-          {/* Session goal */}
-          <div className="card-surface p-5 mb-5">
-            <h2 className="font-bold mb-3 flex items-center gap-2"><Target size={17} /> 6. Session goal</h2>
-            <div className="grid sm:grid-cols-3 gap-2 mb-3">
-              {GOALS.map((g) => (
-                <button key={g.key} onClick={() => pickGoal(g.key)}
-                  className={`text-left p-3 rounded-xl border transition ${goalType === g.key ? "border-[var(--color-brand)] bg-[var(--color-tint)]" : "border-[var(--color-line)] hover:border-[var(--color-brand)]"}`}>
-                  <div className="font-medium flex items-center gap-2">
-                    <span className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 ${goalType === g.key ? "border-[var(--color-brand)] bg-[var(--color-brand)]" : "border-[var(--color-muted)]"}`} />
-                    {g.label}
-                  </div>
-                  <div className="text-xs text-[var(--color-muted)] mt-0.5 ml-5">{g.desc}</div>
-                </button>
-              ))}
-            </div>
-            {goalType !== "none" && (
-              <div className="flex items-center gap-3 flex-wrap fade-up">
-                {(goalType === "cards" ? [10, 20, 40, 60] : [15, 25, 45, 60]).map((n) => (
-                  <button key={n} onClick={() => setGoalValue(n)} className={`btn ${goalValue === n ? "btn-primary" : "btn-ghost"} py-2 px-4`}>{n}</button>
-                ))}
-                <div className="flex items-center gap-2">
-                  <input type="number" min={1} max={goalType === "cards" ? 500 : 480} value={goalValue}
-                    onChange={(e) => setGoalValue(Math.max(1, Number(e.target.value)))} className="input max-w-[90px]" />
-                  <span className="text-sm text-[var(--color-muted)]">{goalType === "cards" ? "cards" : "minutes"}</span>
-                </div>
               </div>
             )}
           </div>

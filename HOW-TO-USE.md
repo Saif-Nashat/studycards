@@ -46,8 +46,8 @@ No coding needed. Just follow the steps.
 
 1. Go to the **Import** page in the app and click **Copy** on the prompt.
 2. Open **claude.ai** in your browser and paste the prompt.
-3. Open your **MRCOG PDF**, copy the text of a section, and paste it where the prompt says
-   `<<< PASTE YOUR BOOK TEXT HERE >>>`. Send it.
+3. Attach your study material to the same message (a PDF or slides), or paste
+   its text after the prompt. Send it.
 4. Claude replies with a blue **code block**. Copy all of it.
 5. Back in the app: **Import → claude.ai cards** tab → paste it → **Preview** → choose a deck → **Import**.
 

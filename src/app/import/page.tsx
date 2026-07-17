@@ -22,7 +22,7 @@ export default function ImportPage() {
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
         <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
         <span>
-          <b className="text-[var(--color-ink)]">Use any material you like — in any language.</b> Turn university slides, textbooks, lecture notes or
+          <b className="text-[var(--color-ink)]">Use any material you like.</b> Turn university slides, textbooks, lecture notes or
           articles into flashcards as CSV or JSON — and get creative: it doesn&apos;t have to be medicine. Language vocabulary,
           law, history, coding, exam prep of any kind… if it fits on a flashcard, you can study it here. Cards can be written
           in <b className="text-[var(--color-ink)]">any language</b> — Arabic and other right-to-left scripts display correctly, and you can even mix languages on the same card.
@@ -183,7 +183,19 @@ function ApkgImport() {
     <div className="space-y-4">
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
         <Package size={18} className="text-[var(--color-brand)] shrink-0 mt-0.5" />
-        <span>Download free decks from <a href="https://ankiweb.net/shared/decks" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">ankiweb.net/shared</a> (e.g. search &quot;AnKing&quot; or &quot;Zanki&quot; for USMLE Step 1/2), or upload your own media-rich decks (UWorld, etc.) — pictures and audio clips are imported too (video is skipped). Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
+        <span>
+          <b className="text-[var(--color-ink)]">Free USMLE / OB-GYN decks:</b> get free community Anki decks from{" "}
+          <a href="https://ankiweb.net/shared/decks" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">ankiweb.net/shared</a> — search
+          for <a href="https://ankiweb.net/shared/decks?search=anking" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">AnKing</a>,{" "}
+          <a href="https://ankiweb.net/shared/decks?search=zanki" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">Zanki</a>, or{" "}
+          <a href="https://ankiweb.net/shared/decks?search=lightyear" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--color-brand)] hover:underline">Lightyear</a> (Step 1 &amp; 2).
+          Download the <code>.apkg</code> file and load it below. These are free and community-made, so double-check facts as you study.
+        </span>
+      </div>
+
+      <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3">
+        <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />
+        <span>Your own decks (UWorld, etc.) work too — pictures and audio clips are imported (video is skipped). Big decks (100MB+) are fine: the deck is unpacked right on your device and uploaded in small pieces, it just takes a few minutes — and you can keep using the app while it runs (just don&apos;t close the tab). If a deck won&apos;t load, re-export it from the Anki app with the &quot;Support older Anki versions&quot; option ticked.</span>
       </div>
 
       <div className="card-surface p-5 space-y-3">

@@ -18,7 +18,7 @@ const prisma = new PrismaClient();
 
 // Roles + storage shares (public knowledge; fine to keep in the repo).
 const USERS = [
-  { username: "saif",   displayName: "Saif",    role: "member", storageLimitMb: 75 },
+  { username: "mays",   displayName: "Mays",    role: "member", storageLimitMb: 75 },
   { username: "medic1", displayName: "Medic 1", role: "member", storageLimitMb: 75 },
   { username: "medic2", displayName: "Medic 2", role: "member", storageLimitMb: 75 },
   { username: "medic3", displayName: "Medic 3", role: "member", storageLimitMb: 75 },

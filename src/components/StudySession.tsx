@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Flag, Eye, Loader2, PartyPopper, ArrowRight, ChevronLeft, ChevronRight, Bug, NotebookPen, X, LogOut, CircleDashed, Timer, Coffee, Play, Pause, Target, Trophy } from "lucide-react";
+import { Flag, Eye, Loader2, PartyPopper, ArrowRight, ChevronLeft, ChevronRight, Bug, NotebookPen, X, LogOut, CircleDashed, Timer, Coffee, Play, Pause, Trophy } from "lucide-react";
 import { CardQuestion, CardAnswer, type CardData } from "./CardFace";
 import NumberTicker from "./NumberTicker";
 import NotebookEditor from "./NotebookEditor";
@@ -20,7 +20,48 @@ const RATINGS: { key: Rating; label: string; color: string; hot: string }[] = [
   { key: "easy", label: "Easy", color: "var(--color-easy)", hot: "4" },
 ];
 
-export default function StudySession({ mode, deckId, deckIds, tag, tags, source, limit, title, timer = "none", pomoFocus = 25, pomoBreak = 5, goalCards, goalMinutes }: { mode: Mode; deckId?: string; deckIds?: string; tag?: string; tags?: string; source?: string; limit?: number; title: string; timer?: TimerMode; pomoFocus?: number; pomoBreak?: number; goalCards?: number; goalMinutes?: number }) {
+// ---- Session persistence -----------------------------------------------
+// A study session used to live only in component state, so any navigation
+// (a navbar tab, the browser discarding a background tab on a phone) silently
+// killed it. The whole session snapshot now lives in sessionStorage: the same
+// URL restores it, and the study builder offers a Resume button for it.
+const SESSION_KEY = "sc_active_session";
+const TIMER_KEY = "sc_active_session_timer";
+
+export interface SavedSession {
+  href: string;
+  title: string;
+  queue: CardData[];
+  idx: number;
+  revealed: boolean;
+  done: number;
+  counts: Counts;
+  ratedIds: string[];
+  flagged: string[];
+  leeches: string[];
+  initialTotal: number;
+  savedAt: number;
+}
+
+export function readSavedSession(): SavedSession | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as SavedSession;
+    return Array.isArray(s.queue) && s.queue.length > 0 ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearSavedSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(TIMER_KEY);
+  } catch { /* ignore */ }
+}
+
+export default function StudySession({ mode, deckId, deckIds, tag, tags, source, limit, title, timer = "none", pomoFocus = 25, pomoBreak = 5 }: { mode: Mode; deckId?: string; deckIds?: string; tag?: string; tags?: string; source?: string; limit?: number; title: string; timer?: TimerMode; pomoFocus?: number; pomoBreak?: number }) {
   // The pomodoro durations are fixed for the life of a session; memoise so the
   // config keeps a stable identity for effect dependencies.
   const pomoCfg = useMemo(() => pomoConfig(pomoFocus, pomoBreak), [pomoFocus, pomoBreak]);
@@ -42,36 +83,91 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
   const [notebookOpen, setNotebookOpen] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ---- Session timer (stopwatch / pomodoro) & goal tracking ----
-  // elapsed always ticks (cheap, and it powers time goals even with the clock
-  // hidden); the pomodoro state machine lives in @/lib/timer and is advanced by
-  // wall-clock deltas so throttled background tabs can't drift it.
+  // ---- Session timer (stopwatch / pomodoro) ----
+  // elapsed always ticks (cheap); the pomodoro state machine lives in
+  // @/lib/timer and is advanced by wall-clock deltas so throttled background
+  // tabs can't drift it.
   const [elapsed, setElapsed] = useState(0);
   const [pomo, setPomo] = useState<PomoState | null>(() => (isPomodoro(timer) ? initialPomoState(pomoConfig(pomoFocus, pomoBreak)) : null));
   const [paused, setPaused] = useState(false);
-  const [goalOverlay, setGoalOverlay] = useState(false);
-  const goalAnnounced = useRef(false);
   const lastTick = useRef(0); // wall-clock ms of the previous tick; seeded when the interval starts
 
   useEffect(() => {
-    const params = new URLSearchParams({ mode });
-    if (deckId) params.set("deckId", deckId);
-    if (deckIds) params.set("deckIds", deckIds);
-    if (tag) params.set("tag", tag);
-    if (tags) params.set("tags", tags);
-    if (source) params.set("source", source);
-    if (limit) params.set("limit", String(limit));
-    fetch(`/api/study?${params}`)
-      .then((r) => r.json())
-      .then((data: CardData[]) => {
+    let cancelled = false;
+    (async () => {
+      // Resume a saved session when this exact session URL is re-opened —
+      // whether by the builder's Resume button, browser history, or a phone
+      // reloading a discarded tab.
+      const href = window.location.pathname + window.location.search;
+      const saved = readSavedSession();
+      if (saved && saved.href === href) {
+        if (cancelled) return;
+        setQueue(saved.queue);
+        setIdx(saved.idx);
+        setRevealed(saved.revealed);
+        setDone(saved.done);
+        setCounts(saved.counts);
+        setRatedIds(new Set(saved.ratedIds));
+        setFlaggedSet(new Set(saved.flagged));
+        setLeechSet(new Set(saved.leeches));
+        setInitialTotal(saved.initialTotal);
+        try {
+          const t = JSON.parse(sessionStorage.getItem(TIMER_KEY) || "null");
+          if (t) { setElapsed(t.elapsed || 0); if (t.pomo) setPomo(t.pomo); setPaused(!!t.paused); }
+        } catch { /* timer state is best-effort */ }
+        setLoading(false);
+        return;
+      }
+
+      const params = new URLSearchParams({ mode });
+      if (deckId) params.set("deckId", deckId);
+      if (deckIds) params.set("deckIds", deckIds);
+      if (tag) params.set("tag", tag);
+      if (tags) params.set("tags", tags);
+      if (source) params.set("source", source);
+      if (limit) params.set("limit", String(limit));
+      try {
+        const data: CardData[] = await fetch(`/api/study?${params}`).then((r) => r.json());
+        if (cancelled) return;
         setQueue(data);
         setInitialTotal(data.length);
         setFlaggedSet(new Set(data.filter((c) => c.flagged).map((c) => c.id)));
         setLeechSet(new Set(data.filter((c) => c.isLeech).map((c) => c.id)));
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [mode, deckId, deckIds, tag, tags, source, limit]);
+
+  // Snapshot the session on every meaningful change. If the queue is too
+  // image-heavy for sessionStorage, resume just won't be offered — never fatal.
+  useEffect(() => {
+    if (loading || finished) return;
+    try {
+      const snapshot: SavedSession = {
+        href: window.location.pathname + window.location.search,
+        title, queue, idx, revealed, done, counts,
+        ratedIds: Array.from(ratedIds),
+        flagged: Array.from(flaggedSet),
+        leeches: Array.from(leechSet),
+        initialTotal,
+        savedAt: Date.now(),
+      };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
+    } catch { /* quota exceeded — skip persistence */ }
+  }, [loading, finished, title, queue, idx, revealed, done, counts, ratedIds, flaggedSet, leechSet, initialTotal]);
+
+  // The clock is saved separately — it changes every second and shouldn't
+  // re-serialize the whole card queue each tick.
+  useEffect(() => {
+    if (loading || finished) return;
+    try { sessionStorage.setItem(TIMER_KEY, JSON.stringify({ elapsed, pomo, paused })); } catch { /* ignore */ }
+  }, [loading, finished, elapsed, pomo, paused]);
+
+  // The session is over (finished or ended by hand) — nothing to resume.
+  useEffect(() => { if (finished) clearSavedSession(); }, [finished]);
 
   // Tick the clock once a second using real elapsed time between ticks (so a
   // throttled background tab catches up correctly instead of losing time).
@@ -95,17 +191,6 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
 
   const current = queue[idx];
   const total = queue.length;
-
-  // Fire the goal celebration exactly once, whichever target lands first.
-  const goalReached =
-    (goalCards != null && done >= goalCards) ||
-    (goalMinutes != null && focusSeconds >= goalMinutes * 60);
-  useEffect(() => {
-    if (goalReached && !goalAnnounced.current && !finished) {
-      goalAnnounced.current = true;
-      setGoalOverlay(true);
-    }
-  }, [goalReached, finished]);
 
   const rate = useCallback(
     async (rating: Rating) => {
@@ -163,7 +248,12 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!current) return;
-      if (onBreak || goalOverlay) return; // an overlay owns the screen
+      if (onBreak) return; // the break overlay owns the screen
+      // Typing must never drive the session: with the notebook drawer open (or
+      // focus in any input/contenteditable) an 'f' used to flag the card and
+      // Space used to reveal the answer mid-sentence.
+      const t = e.target as HTMLElement | null;
+      if (notebookOpen || (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable))) return;
       if (e.key === "ArrowLeft") { goPrev(); return; }
       if (e.key === "ArrowRight") { goNext(); return; }
       if (e.key.toLowerCase() === "f") { toggleFlag(); return; }
@@ -172,7 +262,7 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [current, revealed, rate, toggleFlag, goPrev, goNext, onBreak, goalOverlay]);
+  }, [current, revealed, rate, toggleFlag, goPrev, goNext, onBreak, notebookOpen]);
 
   if (loading) return <div className="grid place-items-center py-24 text-[var(--color-muted)]"><Loader2 className="animate-spin mb-2" /> Loading cards…</div>;
   if (finished || !current) {
@@ -180,9 +270,8 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
     return (
       <SessionSummary
         done={done} counts={counts} remaining={remaining} endedEarly={endedEarly}
-        timeSeconds={timer !== "none" || goalMinutes != null ? Math.round(focusSeconds) : 0}
+        timeSeconds={timer !== "none" ? Math.round(focusSeconds) : 0}
         cycles={pomo?.cycles ?? 0}
-        goalCards={goalCards} goalMinutes={goalMinutes}
       />
     );
   }
@@ -206,35 +295,23 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
         </div>
       </div>
 
-      {/* Timer & goal chips — only when this session has a clock or a target. */}
-      {(timer !== "none" || goalCards != null || goalMinutes != null) && (
+      {/* Timer chips — only when this session has a clock. */}
+      {timer !== "none" && (
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {timer !== "none" && (
-            <button
-              onClick={() => setPaused((p) => !p)}
-              className="chip !text-[0.8rem] tabular-nums cursor-pointer"
-              style={onBreak ? { background: "var(--color-hard)", color: "white" } : undefined}
-              title={paused ? "Resume timer" : "Pause timer"}
-            >
-              {onBreak ? <Coffee size={13} /> : <Timer size={13} />}
-              {isPomodoro(timer) && pomo
-                ? `${onBreak ? "Break" : "Focus"} · ${formatClock(pomo.phaseLeft)}`
-                : formatClock(elapsed)}
-              {paused ? <Play size={12} /> : <Pause size={12} className="opacity-50" />}
-            </button>
-          )}
+          <button
+            onClick={() => setPaused((p) => !p)}
+            className="chip !text-[0.8rem] tabular-nums cursor-pointer"
+            style={onBreak ? { background: "var(--color-hard)", color: "white" } : undefined}
+            title={paused ? "Resume timer" : "Pause timer"}
+          >
+            {onBreak ? <Coffee size={13} /> : <Timer size={13} />}
+            {isPomodoro(timer) && pomo
+              ? `${onBreak ? "Break" : "Focus"} · ${formatClock(pomo.phaseLeft)}`
+              : formatClock(elapsed)}
+            {paused ? <Play size={12} /> : <Pause size={12} className="opacity-50" />}
+          </button>
           {isPomodoro(timer) && pomo && pomo.cycles > 0 && (
             <span className="chip !text-[0.8rem]" title="Completed pomodoros">🍅 ×{pomo.cycles}</span>
-          )}
-          {goalCards != null && (
-            <span className="chip !text-[0.8rem] tabular-nums" style={done >= goalCards ? { background: "var(--color-good)", color: "white" } : undefined}>
-              <Target size={13} /> {done} / {goalCards} cards
-            </span>
-          )}
-          {goalMinutes != null && (
-            <span className="chip !text-[0.8rem] tabular-nums" style={focusSeconds >= goalMinutes * 60 ? { background: "var(--color-good)", color: "white" } : undefined}>
-              <Target size={13} /> {formatClock(focusSeconds)} / {goalMinutes} min
-            </span>
           )}
         </div>
       )}
@@ -346,36 +423,6 @@ export default function StudySession({ mode, deckId, deckIds, tag, tags, source,
         )}
       </AnimatePresence>
 
-      {/* Session goal reached — celebrate, then let the user decide. */}
-      <AnimatePresence>
-        {goalOverlay && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4">
-            <motion.div initial={{ scale: 0.92, y: 14 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="card-surface gradient-ring p-8 md:p-10 text-center max-w-sm w-full relative overflow-hidden">
-              <Confetti />
-              <motion.div
-                initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 260, damping: 14, delay: 0.1 }}
-                className="logo-badge pulse-glow grid place-items-center w-16 h-16 rounded-2xl mx-auto mb-4 text-white"
-              >
-                <Target size={30} />
-              </motion.div>
-              <h2 className="text-2xl font-bold mb-1">Goal reached! 🎯</h2>
-              <p className="text-[var(--color-muted)] mb-6">
-                {goalCards != null && done >= goalCards
-                  ? <>You&apos;ve solved <b className="text-[var(--color-ink)]">{done}</b> cards</>
-                  : <>You&apos;ve studied for <b className="text-[var(--color-ink)]">{goalMinutes}</b> minutes</>}
-                {" "}— brilliant work. Stop here or push on?
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setGoalOverlay(false)} className="btn btn-ghost flex-1">Keep going</button>
-                <button onClick={() => { setGoalOverlay(false); endSession(); }} className="btn btn-primary flex-1">Finish session</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -415,13 +462,10 @@ function Confetti() {
   );
 }
 
-function SessionSummary({ done, counts, remaining = 0, endedEarly = false, timeSeconds = 0, cycles = 0, goalCards, goalMinutes }: { done: number; counts: Counts; remaining?: number; endedEarly?: boolean; timeSeconds?: number; cycles?: number; goalCards?: number; goalMinutes?: number }) {
+function SessionSummary({ done, counts, remaining = 0, endedEarly = false, timeSeconds = 0, cycles = 0 }: { done: number; counts: Counts; remaining?: number; endedEarly?: boolean; timeSeconds?: number; cycles?: number }) {
   const total = counts.again + counts.hard + counts.good + counts.easy;
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   const accuracy = pct(counts.good + counts.easy);
-  const goalHit =
-    (goalCards != null && done >= goalCards) ||
-    (goalMinutes != null && timeSeconds >= goalMinutes * 60);
   const rows = [
     { label: "Again", value: counts.again, color: "var(--color-again)" },
     { label: "Hard", value: counts.hard, color: "var(--color-hard)" },
@@ -440,18 +484,19 @@ function SessionSummary({ done, counts, remaining = 0, endedEarly = false, timeS
         <PartyPopper size={30} />
       </motion.div>
       <h2 className="font-display text-3xl mb-1 tracking-tight">{endedEarly ? "Session ended" : "Session complete!"}</h2>
+      {/* The timer verdict — always shown when this session had a clock, even
+          if no cards were answered (you still spent the time). */}
+      {(timeSeconds > 0 || cycles > 0) && (
+        <p className="mb-2 flex items-center gap-2 justify-center flex-wrap">
+          <span className="chip !text-sm tabular-nums"><Timer size={14} /> <b>{formatClock(timeSeconds)}</b>&nbsp;focused</span>
+          {cycles > 0 && <span className="chip !text-sm">🍅 ×{cycles} pomodoro{cycles > 1 ? "s" : ""}</span>}
+        </p>
+      )}
       {total === 0 ? (
         <p className="text-[var(--color-muted)] mb-6">{endedEarly ? "You ended before answering any cards — nothing was counted, and all cards are still unsolved." : "There were no cards to review right now."}</p>
       ) : (
         <>
           <p className="text-[var(--color-muted)] mb-2">You reviewed <b className="text-[var(--color-ink)]">{done}</b> card{done === 1 ? "" : "s"} — all counted in your statistics.</p>
-          {(timeSeconds > 0 || cycles > 0) && (
-            <p className="text-sm text-[var(--color-muted)] mb-2 flex items-center gap-1.5 justify-center flex-wrap">
-              <Timer size={14} /> <b className="text-[var(--color-ink)]">{formatClock(timeSeconds)}</b> focused
-              {cycles > 0 && <> · 🍅 ×{cycles} pomodoro{cycles > 1 ? "s" : ""}</>}
-              {goalHit && <> · 🎯 goal reached</>}
-            </p>
-          )}
           {endedEarly && remaining > 0 && (
             <p className="text-sm text-[var(--color-muted)] mb-6 inline-flex items-center gap-1.5 justify-center">
               <CircleDashed size={15} /> <b className="text-[var(--color-ink)]">{remaining}</b> card{remaining === 1 ? "" : "s"} left unsolved — they&apos;ll be waiting next time.
