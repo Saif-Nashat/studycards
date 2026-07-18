@@ -48,7 +48,12 @@
   --color-danger-bg: #fdf1f1;    /* leech / delete-hover wash */
   --color-chip-bg: #ddf0e4;
   --color-chip-ink: #14532d;
-  --color-nav: rgba(253, 254, 252, 0.66);
+  /* Text-safe (AA ≥4.5:1 on light surfaces) variants of the accent colours,
+     for small labels where the vivid --color-good / --color-gold fall short. */
+  --color-good-strong: #0f7a48;
+  --color-gold-strong: #7a5610;
+  --color-gold-chip-bg: #f6e8c4;
+  --color-nav: rgba(253, 254, 252, 0.88);
   --shadow-key: rgba(16, 55, 33, 0.16);
   --shadow-glow: rgba(21, 115, 71, 0.28);
   --card-highlight: rgba(255, 255, 255, 0.85);   /* inner top bevel */
@@ -73,7 +78,12 @@ html[data-theme="dark"] {
   --color-danger-bg: #34151d;
   --color-chip-bg: #143a27;
   --color-chip-ink: #7cebb4;
-  --color-nav: rgba(6, 13, 9, 0.6);
+  /* Dark surfaces already read fine with the vivid accents, so the "strong"
+     text variants stay bright here and the gold chip keeps its tinted wash. */
+  --color-good-strong: #4ade80;
+  --color-gold-strong: #e8c874;
+  --color-gold-chip-bg: color-mix(in srgb, var(--color-gold) 18%, transparent);
+  --color-nav: rgba(6, 13, 9, 0.82);
   --shadow-key: rgba(0, 0, 0, 0.55);
   --shadow-glow: rgba(16, 185, 129, 0.32);
   --card-highlight: rgba(255, 255, 255, 0.07);

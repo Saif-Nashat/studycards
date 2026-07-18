@@ -52,7 +52,14 @@ function TestBuilder() {
   const [loading, setLoading] = useState(true);
   const [selectedDecks, setSelectedDecks] = useState<Set<string>>(new Set());
   const [source, setSource] = useState<Source>("all");
-  const [count, setCount] = useState(20);
+  const DEFAULT_COUNT = 20;
+  const [count, setCount] = useState(DEFAULT_COUNT);
+  // Whether the user has picked a card count themselves. Until they do, the
+  // count tracks the cap (so small decks default to "all", big ones to 20);
+  // once touched we respect their number and only clamp it down if the cap
+  // shrinks below it.
+  const [countTouched, setCountTouched] = useState(false);
+  const chooseCount = (n: number) => { setCountTouched(true); setCount(n); };
   const [timerMode, setTimerMode] = useState<TimerMode>("none");
   const [pomoFocus, setPomoFocus] = useState(DEFAULT_POMODORO.focus);
   const [pomoBreak, setPomoBreak] = useState(DEFAULT_POMODORO.break);
@@ -101,15 +108,17 @@ function TestBuilder() {
   const cap = Math.min(available ?? SESSION_MAX, SESSION_MAX);
   const isMax = count >= cap && cap > 0;
 
-  // Never let the requested count run past what's available / the cap (e.g. after
-  // switching to a source with far fewer cards). Skip while decks are still
-  // loading (or the selection genuinely has nothing): until then `available` is
-  // 0, so clamping would collapse the default down to 1 and leave it stuck there
-  // even once real decks arrive and raise the cap.
+  // Keep the count sensible as the cap changes (e.g. switching to a source with
+  // far fewer cards). Skip while decks are still loading or the selection has
+  // nothing — until then `available` is 0. An untouched count follows the cap
+  // in BOTH directions, so a transient low cap during load can't permanently pin
+  // it (the old one-directional clamp collapsed the default to 1 and stuck there
+  // even after real decks raised the cap). Once the user picks a number we keep
+  // it and only clamp downward if the cap drops below it.
   useEffect(() => {
     if (loading || cap <= 0) return;
-    setCount((c) => Math.min(c, cap));
-  }, [loading, cap]);
+    setCount((c) => (countTouched ? Math.min(c, cap) : Math.min(DEFAULT_COUNT, cap)));
+  }, [loading, cap, countTouched]);
 
   function toggleDeck(id: string) {
     setSelectedDecks((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -221,15 +230,15 @@ function TestBuilder() {
                 <p className="text-sm font-semibold mb-2">How many cards</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   {[10, 20, 40, 80].filter((n) => n < cap).map((n) => (
-                    <button key={n} onClick={() => setCount(n)} className={`btn ${count === n && !isMax ? "btn-primary" : "btn-ghost"} py-2 px-4`}>{n}</button>
+                    <button key={n} onClick={() => chooseCount(n)} className={`btn ${count === n && !isMax ? "btn-primary" : "btn-ghost"} py-2 px-4`}>{n}</button>
                   ))}
                   {/* Biggest allowed for this selection: the exact count when it's
                       under the per-session cap, otherwise the cap itself. */}
-                  <button onClick={() => setCount(cap)} className={`btn ${isMax ? "btn-primary" : "btn-ghost"} py-2 px-4`}>
+                  <button onClick={() => chooseCount(cap)} className={`btn ${isMax ? "btn-primary" : "btn-ghost"} py-2 px-4`}>
                     {available != null && available <= SESSION_MAX ? `All (${available})` : `Max (${SESSION_MAX})`}
                   </button>
                   <input type="number" min={1} max={cap} value={count}
-                    onChange={(e) => setCount(Math.max(1, Math.min(cap, Number(e.target.value))))}
+                    onChange={(e) => chooseCount(Math.max(1, Math.min(cap, Number(e.target.value))))}
                     className="input max-w-[100px]" />
                 </div>
                 <p className="text-xs text-[var(--color-muted)] mt-2">

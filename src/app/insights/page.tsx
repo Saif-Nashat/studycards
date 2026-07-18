@@ -52,7 +52,9 @@ export default function InsightsPage() {
     { label: "Day streak", value: data.streak, suffix: data.streak === 1 ? "day" : "days", icon: Flame, color: "var(--color-hard)" },
     { label: "Reviewed today", value: data.today, icon: CalendarCheck, color: "var(--color-brand)" },
     { label: "Last 7 days", value: data.last7, icon: TrendingUp, color: "var(--color-accent)" },
-    { label: "All-time accuracy", value: `${data.accuracy}%`, icon: Target, color: "var(--color-good)" },
+    // With zero reviews "0%" reads like "you got everything wrong"; a dash says
+    // "nothing yet" instead.
+    { label: "All-time accuracy", value: data.totalReviews === 0 ? "—" : `${data.accuracy}%`, icon: Target, color: "var(--color-good)" },
   ];
 
   const mat = data.maturity;

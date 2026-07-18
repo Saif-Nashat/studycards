@@ -78,7 +78,7 @@ function clozeSegments(raw: string): { text: string; answer: boolean }[] {
   return segments;
 }
 
-function parseList(back: string): string[] {
+export function parseList(back: string): string[] {
   try {
     const arr = JSON.parse(back);
     if (Array.isArray(arr)) return arr.map(String);

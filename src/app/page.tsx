@@ -192,6 +192,15 @@ export default function Dashboard() {
             {(() => {
               const daily = momentum.daily.slice(-14);
               const maxDaily = Math.max(1, ...daily.map((d) => d.count));
+              // With nothing to plot, an empty axis reads as "broken chart".
+              // Show the same kind of empty state Insights uses instead.
+              if (daily.every((d) => d.count === 0)) {
+                return (
+                  <div className="h-20 grid place-items-center text-center text-sm text-[var(--color-muted)]">
+                    No reviews yet. <Link href="/study" className="text-[var(--color-brand)] font-medium">Study some cards</Link> and your activity shows up here.
+                  </div>
+                );
+              }
               return (
                 <div className="flex items-end justify-between gap-1.5 h-20">
                   {daily.map((d) => (

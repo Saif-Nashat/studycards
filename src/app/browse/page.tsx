@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Plus, Flag, Pencil, Trash2, Loader2, X, Layers, Repeat, Bug, ImagePlus, ChevronLeft, ChevronRight } from "lucide-react";
-import { resolveImageSrc, stripSoundTags } from "@/components/CardFace";
+import { resolveImageSrc, stripSoundTags, parseList } from "@/components/CardFace";
 import { LibraryTabs } from "@/components/SectionTabs";
 import HelpCenter from "@/components/HelpCenter";
 
@@ -14,6 +14,9 @@ interface Card {
 }
 
 const EMPTY: Partial<Card> = { type: "basic", front: "", back: "", extra: "", mnemonic: "", tags: "", source: "", imageFront: "", imageBack: "" };
+
+// Shared style for the per-row action buttons: a 40×40 comfortable touch target.
+const ROW_ACTION = "grid place-items-center h-10 w-10 rounded-lg transition-colors";
 
 // Shrink an uploaded image to a data URL so it can live in the database.
 function fileToResizedDataURL(file: File, maxDim = 800): Promise<string> {
@@ -155,16 +158,18 @@ function BrowseInner() {
                     <span dir="auto" className="truncate">{stripSoundTags(c.front).replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, "[$1]")}</span>
                     {(c.imageFront || c.imageBack) && <ImagePlus size={13} className="text-[var(--color-muted)] shrink-0" />}
                   </p>
-                  <p dir="auto" className="text-sm text-[var(--color-muted)] truncate">{c.type === "list" ? c.back.replace(/[[\]"]/g, "") : stripSoundTags(c.back)}</p>
+                  <p dir="auto" className="text-sm text-[var(--color-muted)] truncate">{c.type === "list" ? parseList(c.back).join(", ") : stripSoundTags(c.back)}</p>
                   <div className="flex gap-2 mt-1.5 flex-wrap">
                     {c.deck?.name && <span className="text-xs text-[var(--color-muted)]">{c.deck.name}</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {c.type === "basic" && <button onClick={() => addReverse(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]" title="Create a reverse copy: a new card with question & answer swapped, so you can recall the fact in both directions"><Repeat size={16} /></button>}
-                  <button onClick={() => toggleFlag(c)} className={`p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] ${c.flagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)]"}`} title="Flag"><Flag size={16} /></button>
-                  <button onClick={() => setEditing(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]" title="Edit"><Pencil size={16} /></button>
-                  <button onClick={() => remove(c)} className="p-1.5 rounded-lg hover:bg-[var(--color-danger-bg)] text-[var(--color-muted)] hover:text-[var(--color-again)]" title="Delete"><Trash2 size={16} /></button>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  {/* 40px hit targets (WCAG 2.5.5) — comfortable to tap even when
+                      three or four cluster together on a phone. */}
+                  {c.type === "basic" && <button onClick={() => addReverse(c)} className={`${ROW_ACTION} hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]`} title="Create a reverse copy: a new card with question & answer swapped, so you can recall the fact in both directions"><Repeat size={17} /></button>}
+                  <button onClick={() => toggleFlag(c)} className={`${ROW_ACTION} hover:bg-[var(--color-surface-2)] ${c.flagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)]"}`} title="Flag"><Flag size={17} /></button>
+                  <button onClick={() => setEditing(c)} className={`${ROW_ACTION} hover:bg-[var(--color-surface-2)] text-[var(--color-muted)]`} title="Edit"><Pencil size={17} /></button>
+                  <button onClick={() => remove(c)} className={`${ROW_ACTION} hover:bg-[var(--color-danger-bg)] text-[var(--color-muted)] hover:text-[var(--color-again)]`} title="Delete"><Trash2 size={17} /></button>
                 </div>
               </div>
             ))}

@@ -20,7 +20,7 @@ export default function ImportPage() {
       <LibraryTabs />
       <span className="eyebrow mb-2.5">Library intake</span>
       <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><Upload size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Import cards <HelpCenter /></h1>
-      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] font-medium underline underline-offset-2 hover:opacity-80">claude AI</a>, or load a free community Anki deck.</p>
+      <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] font-medium underline underline-offset-2 hover:opacity-80">Claude</a>, or load a free community Anki deck.</p>
 
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">
         <Lightbulb size={18} className="text-[var(--color-gold)] shrink-0 mt-0.5" />

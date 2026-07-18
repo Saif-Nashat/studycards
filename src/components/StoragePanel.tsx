@@ -42,6 +42,10 @@ export default function StoragePanel() {
 
   const barColor = (lvl: string) =>
     lvl === "critical" ? "var(--color-again)" : lvl === "warn" ? "var(--color-hard)" : "var(--color-good)";
+  // Same status colours, but the AA-safe text variant for the small % label
+  // (the vivid green fails contrast on the light surface).
+  const barTextColor = (lvl: string) =>
+    lvl === "critical" ? "var(--color-again)" : lvl === "warn" ? "var(--color-hard)" : "var(--color-good-strong)";
 
   return (
     <section id="storage" className="card-surface p-6 scroll-mt-24">
@@ -70,7 +74,7 @@ export default function StoragePanel() {
           {usage.username && (
             <div className="flex items-center gap-2 mb-4">
               <span className="chip">Signed in as {usage.displayName || usage.username}</span>
-              <span className="chip" style={usage.role === "trial" ? { background: "color-mix(in srgb, var(--color-gold) 18%, transparent)", color: "var(--color-gold)" } : undefined}>
+              <span className="chip" style={usage.role === "trial" ? { background: "var(--color-gold-chip-bg)", color: "var(--color-gold-strong)" } : undefined}>
                 {usage.role === "trial" ? "Trial account · 50 MB" : "Member account · 75 MB"}
               </span>
             </div>
@@ -79,7 +83,7 @@ export default function StoragePanel() {
             <span className="text-sm font-medium">
               {formatBytes(usage.usedBytes)} <span className="text-[var(--color-muted)]">of {formatBytes(usage.limitBytes)} used</span>
             </span>
-            <span className="text-sm font-bold" style={{ color: barColor(usage.level) }}>{usage.pct}%</span>
+            <span className="text-sm font-bold" style={{ color: barTextColor(usage.level) }}>{usage.pct}%</span>
           </div>
           <div className="h-3 rounded-full bg-[var(--color-track)] overflow-hidden mb-5">
             <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(2, usage.pct)}%`, background: barColor(usage.level) }} />
