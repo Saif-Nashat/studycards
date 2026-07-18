@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Flame, Flag, Play, Trash2, Loader2, Bug } from "lucide-react";
 import StudySession from "@/components/StudySession";
+import HelpCenter from "@/components/HelpCenter";
 import type { CardData } from "@/components/CardFace";
 
 interface HardCard extends CardData {
@@ -70,6 +71,7 @@ export default function HardPage() {
       <div id="tour-hard" className="flex items-center gap-3 mb-1">
         <span className="grid place-items-center w-11 h-11 rounded-xl text-[var(--color-hard)]" style={{ background: "color-mix(in srgb, var(--color-hard) 13%, transparent)", boxShadow: "inset 0 1px 0 var(--card-highlight), inset 0 0 0 1px color-mix(in srgb, var(--color-hard) 20%, transparent)" }}><Flame size={22} strokeWidth={1.75} /></span>
         <h1 className="font-display text-3xl md:text-4xl tracking-tight">Hard / Flagged</h1>
+        <HelpCenter />
       </div>
       <p className="text-[var(--color-muted)] mb-5">
         Two kinds of card gather here: ones <b>you flagged</b> <Flag size={13} className="inline" /> to revisit, and ones the app marked <b className="text-[var(--color-hard)]">hard</b> because you rated them Hard (or kept failing them). Cards rated &quot;Again&quot; aren&apos;t listed — they come straight back in your normal queue.

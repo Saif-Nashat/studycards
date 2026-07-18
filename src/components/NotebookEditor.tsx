@@ -365,16 +365,17 @@ export default function NotebookEditor({ compact = false }: { compact?: boolean 
         <span className="w-px h-5 bg-[var(--color-line)] mx-1" />
 
         {/* Clear formatting — deliberately a labelled, tinted button (not just an
-            icon) so it's obvious and hard to hit by accident. */}
+            icon) so it's obvious and hard to hit by accident. The full "Clear
+            formatting" label makes clear it resets styling, not the text itself. */}
         <button
           type="button"
-          title="Clear all formatting from the selected text"
+          title="Reset formatting (bold, highlights, sizes…) on the selected text — your text stays"
           aria-label="Clear formatting"
           className="rt-clear"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => run({ kind: "clear" })}
         >
-          <Eraser size={14} /> Clear
+          <Eraser size={14} /> Clear formatting
         </button>
       </div>
 

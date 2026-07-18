@@ -355,24 +355,31 @@ export default function StudySession({ mode, deckId, deckIds, source, limit, tit
         </motion.div>
       </AnimatePresence>
 
-      <div className="mt-5">
-        {!revealed ? (
-          <button onClick={() => setRevealed(true)} className="btn btn-primary w-full py-3.5 text-base">
-            <Eye size={18} /> Show Answer <span className="opacity-70 text-sm ml-1">(Space)</span>
-          </button>
-        ) : (
-          <div className="grid grid-cols-4 gap-2.5">
-            {RATINGS.map((r) => (
-              <button key={r.key} onClick={() => rate(r.key)} className="btn flex-col gap-0.5 py-3 text-white" style={{ background: r.color }}>
-                <span className="text-base font-bold">{r.label}</span>
-                <span className="text-[11px] opacity-90">
-                  {previewInterval({ state: current.state ?? "new", intervalDays: current.intervalDays ?? 0, ease: current.ease ?? 2.5, reps: current.reps ?? 0, lapses: current.lapses ?? 0 }, r.key)} · {r.hot}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-        <p className="text-center text-xs text-[var(--color-muted)] mt-3">← / → to move between cards · Space to reveal · 1–4 to rate · F to flag</p>
+      {/* Pinned action bar. The Show Answer / rating controls stick to the
+          bottom of the screen, so however long the answer is you never have to
+          scroll down to rate — the buttons are always in the same spot. It
+          floats on a blurred surface and, at the very bottom of the page,
+          settles into place below the card so nothing stays hidden behind it. */}
+      <div className="mt-5 sticky bottom-3 z-20">
+        <div className="rounded-2xl border border-[var(--color-line)] bg-[color-mix(in_srgb,var(--color-surface)_88%,transparent)] backdrop-blur-md p-3 shadow-[0_-10px_30px_-18px_var(--shadow-key)]">
+          {!revealed ? (
+            <button onClick={() => setRevealed(true)} className="btn btn-primary w-full py-3.5 text-base">
+              <Eye size={18} /> Show Answer <span className="opacity-70 text-sm ml-1">(Space)</span>
+            </button>
+          ) : (
+            <div className="grid grid-cols-4 gap-2.5">
+              {RATINGS.map((r) => (
+                <button key={r.key} onClick={() => rate(r.key)} className="btn flex-col gap-0.5 py-3 text-white" style={{ background: r.color }}>
+                  <span className="text-base font-bold">{r.label}</span>
+                  <span className="text-[11px] opacity-90">
+                    {previewInterval({ state: current.state ?? "new", intervalDays: current.intervalDays ?? 0, ease: current.ease ?? 2.5, reps: current.reps ?? 0, lapses: current.lapses ?? 0 }, r.key)} · {r.hot}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-center text-xs text-[var(--color-muted)] mt-3 hidden sm:block">← / → to move between cards · Space to reveal · 1–4 to rate · F to flag</p>
+        </div>
       </div>
 
       {/* Notebook slide-over */}

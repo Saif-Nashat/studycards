@@ -6,6 +6,7 @@ import { Upload, FileText, Package, Eye, CheckCircle2, Loader2, FileUp, Sparkles
 import { startImport, dismissImport, useImportState } from "@/lib/importManager";
 import { CLAUDE_PROMPT } from "@/lib/prompt";
 import { LibraryTabs } from "@/components/SectionTabs";
+import HelpCenter from "@/components/HelpCenter";
 
 interface Deck { id: string; name: string; }
 
@@ -18,7 +19,7 @@ export default function ImportPage() {
     <div className="max-w-3xl mx-auto">
       <LibraryTabs />
       <span className="eyebrow mb-2.5">Library intake</span>
-      <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><Upload size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Import cards</h1>
+      <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><Upload size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Import cards <HelpCenter /></h1>
       <p className="text-[var(--color-muted)] mb-4 mt-1">Add cards you made with <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] font-medium underline underline-offset-2 hover:opacity-80">claude AI</a>, or load a free community Anki deck.</p>
 
       <div className="card-surface p-4 bg-[var(--color-tint)] text-sm text-[var(--color-muted)] flex gap-3 mb-5">

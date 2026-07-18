@@ -2,6 +2,7 @@
 
 import { Settings, LifeBuoy, Phone, GraduationCap, PlayCircle } from "lucide-react";
 import StoragePanel from "@/components/StoragePanel";
+import HelpCenter from "@/components/HelpCenter";
 import ResetProgressPanel from "@/components/ResetProgressPanel";
 import TrialResetPanel from "@/components/TrialResetPanel";
 import { OPEN_TUTORIAL_EVENT } from "@/components/Tutorial";
@@ -11,7 +12,7 @@ export default function SettingsPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <span className="eyebrow mb-2.5">Control room</span>
-        <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Settings size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Settings &amp; help</h1>
+        <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Settings size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Settings &amp; help <HelpCenter /></h1>
       </div>
 
       {/* Tutorial */}

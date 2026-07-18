@@ -8,11 +8,11 @@ import {
   Home, BookOpen, Flame, BarChart3, Trophy, NotebookPen, Layers, Upload, Settings,
 } from "lucide-react";
 
-// A per-page help overlay. The button lives in the nav next to Settings; when
-// clicked it opens a panel whose content is chosen from the CURRENT route — so
-// "Help" always explains the page the user is actually looking at. This is the
-// deeper, page-specific companion to the one-time welcome Tutorial: the tour is
-// a quick end-to-end intro, this is on-demand detail for wherever you are.
+// A per-page help overlay. The button is dropped in next to each page's title;
+// when clicked it opens a panel whose content is chosen from the CURRENT route —
+// so "Help" always explains the page the user is actually looking at. This is
+// the deeper, page-specific companion to the one-time welcome Tutorial: the tour
+// is a quick end-to-end intro, this is on-demand detail for wherever you are.
 
 interface HelpContent {
   icon: React.ComponentType<{ size?: number }>;
@@ -204,10 +204,9 @@ export default function HelpCenter() {
         onClick={() => setOpen(true)}
         title={`Help for this page — ${help.title}`}
         aria-label="Help for this page"
-        className="relative flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-300 text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]"
+        className="inline-grid place-items-center w-8 h-8 rounded-full shrink-0 align-middle text-[var(--color-gold)] bg-[color-mix(in_srgb,var(--color-gold)_16%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-gold)_30%,transparent)] transition-colors"
       >
-        <HelpCircle size={15} strokeWidth={1.75} />
-        <span>Help</span>
+        <HelpCircle size={20} strokeWidth={1.75} />
       </button>
 
       <AnimatePresence>

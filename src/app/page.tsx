@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { BookOpen, Layers, Flame, CheckCircle2, Plus, Play, Trash2, Loader2, Sparkles, Trophy, ArrowRight, History, CalendarCheck } from "lucide-react";
 import NumberTicker from "@/components/NumberTicker";
+import HelpCenter from "@/components/HelpCenter";
 import { readSavedSession, clearSavedSession, type SavedSession } from "@/components/StudySession";
 
 interface Stats { total: number; due: number; new: number; flagged: number; hard: number; decks: number; reviewedToday: number; }
@@ -83,6 +84,8 @@ export default function Dashboard() {
         transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
         className="card-surface gradient-ring p-7 md:p-10 relative overflow-hidden"
       >
+        {/* Page help, tucked in the hero's top-right corner. */}
+        <span className="absolute top-4 right-4 z-10"><HelpCenter /></span>
         <motion.div
           className="absolute -right-10 -top-10 w-52 h-52 rounded-full bg-[var(--color-accent)]/25 blur-3xl"
           animate={{ x: [0, -16, 0], y: [0, 12, 0], scale: [1, 1.18, 1] }}
@@ -107,7 +110,7 @@ export default function Dashboard() {
           <b className="text-[var(--color-ink)]">{stats.decks}</b> deck{stats.decks === 1 ? "" : "s"}.
         </p>
         <div className="flex flex-wrap gap-3 mt-6 relative">
-          <Link id="tour-study-cta" href="/study?go=1&mode=due" className="btn btn-primary py-3 px-6">
+          <Link id="tour-study-cta" href="/study?source=due" className="btn btn-primary py-3 px-6">
             <Play size={17} /> Study all due ({stats.due + stats.new})
             <span className="btn-orb"><ArrowRight size={13} /></span>
           </Link>
@@ -247,7 +250,7 @@ export default function Dashboard() {
                   <span><b className="text-[var(--color-ink)]">{d.total}</b> total</span>
                 </div>
                 <button
-                  onClick={() => router.push(`/study?go=1&mode=due&deckId=${d.id}&deckName=${encodeURIComponent(d.name)}`)}
+                  onClick={() => router.push(`/study?source=due&deckId=${d.id}`)}
                   className="btn btn-primary mt-4 w-full py-2.5">
                   <Play size={16} /> Study
                 </button>

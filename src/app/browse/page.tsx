@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Search, Plus, Flag, Pencil, Trash2, Loader2, X, Layers, Repeat, Bug, ImagePlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { resolveImageSrc, stripSoundTags } from "@/components/CardFace";
 import { LibraryTabs } from "@/components/SectionTabs";
+import HelpCenter from "@/components/HelpCenter";
 
 interface Deck { id: string; name: string; }
 interface Card {
@@ -116,7 +117,7 @@ function BrowseInner() {
       <div id="tour-browse" className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <span className="eyebrow mb-2.5">Collection</span>
-          <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Layers size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Browse cards</h1>
+          <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Layers size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Browse cards <HelpCenter /></h1>
         </div>
         <button onClick={() => setEditing({ ...EMPTY, deckId: deckFilter || decks[0]?.id })} className="btn btn-primary">
           <Plus size={18} /> Add card

@@ -13,6 +13,7 @@ import {
   type AchStats, type EvaluatedAchievement,
 } from "@/lib/achievements";
 import { ProgressTabs } from "@/components/SectionTabs";
+import HelpCenter from "@/components/HelpCenter";
 
 // Map the string icon names in the achievement catalogue to real components.
 const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -68,7 +69,7 @@ export default function AchievementsPage() {
       <ProgressTabs />
       <div>
         <span className="eyebrow mb-2.5">Milestones</span>
-        <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Trophy size={26} strokeWidth={1.75} className="text-[var(--color-gold)]" /> Trophies</h1>
+        <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 tracking-tight"><Trophy size={26} strokeWidth={1.75} className="text-[var(--color-gold)]" /> Trophies <HelpCenter /></h1>
         <p className="text-[var(--color-muted)] mt-1">Earn rewards as you study. Keep your streak alive and unlock them all.</p>
       </div>
 

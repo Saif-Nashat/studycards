@@ -42,7 +42,9 @@ export async function GET(req: Request) {
   const deckIdsParam = searchParams.get("deckIds")?.trim() || undefined;
   const mode = searchParams.get("mode") || "due";
   const source = searchParams.get("source") || "all";
-  const limit = Math.min(Number(searchParams.get("limit")) || 0, 500);
+  // Hard ceiling per session (mirrors SESSION_MAX in the study builder): keeps
+  // every session fast to load; extra matching cards wait for the next session.
+  const limit = Math.min(Number(searchParams.get("limit")) || 0, 250);
   const newLimit = Number(searchParams.get("newLimit")) || 20;
   const now = new Date();
 
@@ -59,9 +61,11 @@ export async function GET(req: Request) {
     if (source === "new") where.state = "new";
     else if (source === "unanswered") where.lastReviewed = null;
     else if (source === "flagged") where.flagged = true;
+    // "due" -> review cards that have come due, plus any new cards.
+    else if (source === "due") where.OR = [{ state: { not: "new" }, due: { lte: now } }, { state: "new" }];
     // "all" -> no extra filter
 
-    return NextResponse.json(await sampleCards(where, limit || 500));
+    return NextResponse.json(await sampleCards(where, limit || 250));
   }
 
   if (mode === "hard") {

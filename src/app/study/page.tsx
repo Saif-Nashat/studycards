@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Play, FlaskConical, Flame, BookOpen, Timer, Coffee, CircleOff, Layers, History } from "lucide-react";
 import StudySession, { readSavedSession, clearSavedSession, type SavedSession } from "@/components/StudySession";
 import { parseTimerMode, DEFAULT_POMODORO, POMO_LIMITS, type TimerMode } from "@/lib/timer";
+import HelpCenter from "@/components/HelpCenter";
 
 function StudyInner() {
   const params = useSearchParams();
@@ -37,12 +38,20 @@ function StudyInner() {
 
 interface Deck { id: string; name: string; total: number; due: number; new: number; }
 
+type Source = "due" | "all" | "new" | "unanswered" | "flagged";
+
+// The most cards one session can hold. Keeps every session quick to load and a
+// realistic sitting; when more cards match, the extra ones simply wait for the
+// next session. Mirrored by the same cap on the server (/api/study).
+const SESSION_MAX = 250;
+
 function TestBuilder() {
   const router = useRouter();
+  const params = useSearchParams();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDecks, setSelectedDecks] = useState<Set<string>>(new Set());
-  const [source, setSource] = useState<"all" | "new" | "unanswered" | "flagged">("all");
+  const [source, setSource] = useState<Source>("all");
   const [count, setCount] = useState(20);
   const [timerMode, setTimerMode] = useState<TimerMode>("none");
   const [pomoFocus, setPomoFocus] = useState(DEFAULT_POMODORO.focus);
@@ -59,6 +68,43 @@ function TestBuilder() {
     });
   }, []);
 
+  // Preselect from the URL when arriving from a Home shortcut ("Study all due",
+  // or a deck's Study button): pick the deck(s) and card source so the builder
+  // opens ready to tweak the timer / count, instead of jumping straight in.
+  // Applied once (a later manual change must not be clobbered on re-render).
+  const preselected = useRef(false);
+  useEffect(() => {
+    if (preselected.current) return;
+    preselected.current = true;
+    const src = params.get("source");
+    if (src && (["due", "all", "new", "unanswered", "flagged"] as const).includes(src as Source)) {
+      setSource(src as Source);
+    }
+    const ids = [params.get("deckId"), ...(params.get("deckIds")?.split(",") ?? [])]
+      .map((s) => s?.trim()).filter(Boolean) as string[];
+    if (ids.length) setSelectedDecks(new Set(ids));
+  }, [params]);
+
+  // How many cards the current deck + source selection can draw from — powers
+  // the "All" button and the max on the count field. Unknown (null) for sources
+  // the decks API doesn't pre-count (unanswered / flagged); there we allow the
+  // full ceiling and let the server return whatever actually matches.
+  const available = useMemo(() => {
+    const active = selectedDecks.size ? decks.filter((d) => selectedDecks.has(d.id)) : decks;
+    if (source === "due") return active.reduce((s, d) => s + d.due + d.new, 0);
+    if (source === "new") return active.reduce((s, d) => s + d.new, 0);
+    if (source === "all") return active.reduce((s, d) => s + d.total, 0);
+    return null;
+  }, [decks, selectedDecks, source]);
+  // The largest count this session can hold: the per-session cap, or fewer when
+  // that's all the selection has.
+  const cap = Math.min(available ?? SESSION_MAX, SESSION_MAX);
+  const isMax = count >= cap && cap > 0;
+
+  // Never let the requested count run past what's available / the cap (e.g. after
+  // switching to a source with far fewer cards).
+  useEffect(() => { setCount((c) => Math.min(Math.max(1, c), Math.max(1, cap))); }, [cap]);
+
   function toggleDeck(id: string) {
     setSelectedDecks((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
@@ -73,7 +119,8 @@ function TestBuilder() {
     router.push(`/study?${p}`);
   }
 
-  const SOURCES: { key: typeof source; label: string; desc: string }[] = [
+  const SOURCES: { key: Source; label: string; desc: string }[] = [
+    { key: "due", label: "Due today", desc: "Scheduled for review now, plus new cards" },
     { key: "all", label: "All cards", desc: "Everything matching your subjects" },
     { key: "new", label: "New cards", desc: "Cards you haven't started yet" },
     { key: "unanswered", label: "Unanswered", desc: "Never reviewed even once" },
@@ -89,7 +136,7 @@ function TestBuilder() {
   return (
     <div className="max-w-3xl mx-auto">
       <span className="eyebrow mb-2.5">Session builder</span>
-      <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><FlaskConical size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Create a test</h1>
+      <h1 className="font-display text-3xl md:text-4xl flex items-center gap-2.5 mb-1 tracking-tight"><FlaskConical size={26} strokeWidth={1.75} className="text-[var(--color-brand)]" /> Create a test <HelpCenter /></h1>
       <p className="text-[var(--color-muted)] mb-5 mt-1">Pick your subjects and which cards to include, then start. Or use a quick option below.</p>
 
       {/* Unfinished session — offer to pick up right where the user left off. */}
@@ -167,11 +214,27 @@ function TestBuilder() {
               <div>
                 <p className="text-sm font-semibold mb-2">How many cards</p>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {[10, 20, 40, 80].map((n) => (
-                    <button key={n} onClick={() => setCount(n)} className={`btn ${count === n ? "btn-primary" : "btn-ghost"} py-2 px-4`}>{n}</button>
+                  {[10, 20, 40, 80].filter((n) => n < cap).map((n) => (
+                    <button key={n} onClick={() => setCount(n)} className={`btn ${count === n && !isMax ? "btn-primary" : "btn-ghost"} py-2 px-4`}>{n}</button>
                   ))}
-                  <input type="number" min={1} max={500} value={count} onChange={(e) => setCount(Math.max(1, Number(e.target.value)))} className="input max-w-[90px]" />
+                  {/* Biggest allowed for this selection: the exact count when it's
+                      under the per-session cap, otherwise the cap itself. */}
+                  <button onClick={() => setCount(cap)} className={`btn ${isMax ? "btn-primary" : "btn-ghost"} py-2 px-4`}>
+                    {available != null && available <= SESSION_MAX ? `All (${available})` : `Max (${SESSION_MAX})`}
+                  </button>
+                  <input type="number" min={1} max={cap} value={count}
+                    onChange={(e) => setCount(Math.max(1, Math.min(cap, Number(e.target.value))))}
+                    className="input max-w-[100px]" />
                 </div>
+                <p className="text-xs text-[var(--color-muted)] mt-2">
+                  {available != null && available > SESSION_MAX ? (
+                    <><b className="text-[var(--color-ink)]">{available}</b> cards match — a session holds up to <b className="text-[var(--color-ink)]">{SESSION_MAX}</b>, so you&apos;ll study {SESSION_MAX} now and the rest wait for your next session.</>
+                  ) : available != null ? (
+                    <><b className="text-[var(--color-ink)]">{available}</b> card{available === 1 ? "" : "s"} available — up to {SESSION_MAX} per session.</>
+                  ) : (
+                    <>A session holds up to <b className="text-[var(--color-ink)]">{SESSION_MAX}</b> cards.</>
+                  )}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-semibold mb-2">Timer</p>
