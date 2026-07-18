@@ -68,6 +68,10 @@ export default function Dashboard() {
     return <div className="grid place-items-center py-24 text-[var(--color-muted)]"><Loader2 className="animate-spin" /></div>;
   }
 
+  // Only decks that actually have cards waiting (due or new) — so the hero line
+  // doesn't count a freshly-created empty deck as a "deck with cards waiting".
+  const decksWithWaiting = decks.filter((d) => d.due + d.new > 0).length;
+
   const statCards = [
     { label: "Due today", value: stats.due, icon: BookOpen, color: "var(--color-brand)" },
     { label: "New cards", value: stats.new, icon: Sparkles, color: "var(--color-accent)" },
@@ -108,7 +112,7 @@ export default function Dashboard() {
         </h1>
         <p className="text-[var(--color-muted)] mt-3 max-w-lg relative">
           You have <b className="text-[var(--color-ink)]">{stats.due + stats.new}</b> cards waiting across{" "}
-          <b className="text-[var(--color-ink)]">{stats.decks}</b> deck{stats.decks === 1 ? "" : "s"}.
+          <b className="text-[var(--color-ink)]">{decksWithWaiting}</b> deck{decksWithWaiting === 1 ? "" : "s"}.
         </p>
         <div className="flex flex-wrap gap-3 mt-6 relative">
           <Link id="tour-study-cta" href="/study?source=due" className="btn btn-primary py-3 px-6">
@@ -239,9 +243,11 @@ export default function Dashboard() {
                 transition={{ delay: i * 0.05, duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
                 className="card-surface card-lift p-5 flex flex-col"
               >
-                <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-lg leading-tight tracking-tight">{d.name}</h3>
-                  <button onClick={() => deleteDeck(d.id, d.name)} className="text-[var(--color-muted)] hover:text-[var(--color-again)] p-1 transition-colors" title="Delete deck">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-lg leading-tight tracking-tight min-w-0">
+                    <Link href={`/browse?deckId=${d.id}`} className="hover:text-[var(--color-brand)] transition-colors" title="Browse this deck's cards">{d.name}</Link>
+                  </h3>
+                  <button onClick={() => deleteDeck(d.id, d.name)} className="text-[var(--color-muted)] hover:text-[var(--color-again)] p-1 shrink-0 transition-colors" title="Delete deck">
                     <Trash2 size={15} strokeWidth={1.75} />
                   </button>
                 </div>

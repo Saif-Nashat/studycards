@@ -100,10 +100,14 @@ export default function InsightsPage() {
               {data.daily.map((d, i) => (
                 <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5 group">
                   <div className="relative w-full flex items-end justify-center" style={{ height: "100%" }}>
+                    {/* Faint full-height track so the 14-day grid stays legible even
+                        on light-activity days — otherwise a single busy day leaves the
+                        rest of the chart looking empty. */}
+                    <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-[22px] h-full rounded-t-md bg-[var(--color-line)] opacity-40" />
                     <motion.div
-                      className="w-full max-w-[22px] rounded-t-md bg-[var(--color-brand)]"
+                      className="relative w-full max-w-[22px] rounded-t-md bg-[var(--color-brand)]"
                       initial={{ height: 0 }}
-                      animate={{ height: `${(d.count / maxDaily) * 100}%` }}
+                      animate={{ height: `${d.count > 0 ? Math.max(6, (d.count / maxDaily) * 100) : 0}%` }}
                       transition={{ delay: i * 0.03, duration: 0.5 }}
                       title={`${d.count} on ${d.date}`}
                     />

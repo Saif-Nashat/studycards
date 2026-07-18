@@ -24,7 +24,10 @@ function secretKey() {
 // while signed out. The login API stays public too (it's how you sign in); the
 // login *page* is handled separately below so we can redirect already-signed-in
 // users away from it.
-const PUBLIC_PATHS = ["/api/login", "/robots.txt", "/sitemap.xml", "/opengraph-image", "/favicon.ico", "/manifest.webmanifest"];
+// The service worker must load without a session (the browser fetches /sw.js
+// outside any page's auth, and it's registered from the signed-out login page
+// too), and the offline fallback page it precaches has no user data.
+const PUBLIC_PATHS = ["/api/login", "/robots.txt", "/sitemap.xml", "/opengraph-image", "/favicon.ico", "/manifest.webmanifest", "/sw.js", "/offline"];
 // Brand/app icon files must load without a session too: the favicon route plus
 // every PWA install icon (/icon-192.png, /apple-icon.png, …).
 const PUBLIC_PREFIXES = ["/icon", "/apple-icon"];

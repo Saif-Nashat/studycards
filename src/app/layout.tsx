@@ -7,6 +7,8 @@ import StorageBanner from "@/components/StorageBanner";
 import Tutorial from "@/components/Tutorial";
 import Spotlight from "@/components/Spotlight";
 import ImportStatusPill from "@/components/ImportStatusPill";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import IosInstallHint from "@/components/IosInstallHint";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -110,6 +112,10 @@ export default function RootLayout({
         <Tutorial />
         {/* Deck imports keep running across page changes; this shows their progress. */}
         <ImportStatusPill />
+        {/* Installs the offline / background-sync service worker (no UI). */}
+        <ServiceWorkerRegister />
+        {/* iOS-only "Add to Home Screen" hint (WebKit has no install prompt). */}
+        <IosInstallHint />
         <Script id="microsoft-clarity" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: CLARITY_INIT }} />
       </body>
     </html>

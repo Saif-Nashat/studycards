@@ -60,7 +60,8 @@ function BrowseInner() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState(searchParams.get("q") || "");
-  const [deckFilter, setDeckFilter] = useState("");
+  // Preselect a deck when arriving from a Home deck title (/browse?deckId=…).
+  const [deckFilter, setDeckFilter] = useState(searchParams.get("deckId") || "");
   const [editing, setEditing] = useState<Partial<Card> | null>(null);
   // Server-side paging: /api/cards returns one page of 10 when `page` is set.
   const [page, setPage] = useState(1);

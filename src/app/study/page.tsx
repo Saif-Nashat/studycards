@@ -102,8 +102,14 @@ function TestBuilder() {
   const isMax = count >= cap && cap > 0;
 
   // Never let the requested count run past what's available / the cap (e.g. after
-  // switching to a source with far fewer cards).
-  useEffect(() => { setCount((c) => Math.min(Math.max(1, c), Math.max(1, cap))); }, [cap]);
+  // switching to a source with far fewer cards). Skip while decks are still
+  // loading (or the selection genuinely has nothing): until then `available` is
+  // 0, so clamping would collapse the default down to 1 and leave it stuck there
+  // even once real decks arrive and raise the cap.
+  useEffect(() => {
+    if (loading || cap <= 0) return;
+    setCount((c) => Math.min(c, cap));
+  }, [loading, cap]);
 
   function toggleDeck(id: string) {
     setSelectedDecks((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });

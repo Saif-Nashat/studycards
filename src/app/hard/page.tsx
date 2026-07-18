@@ -74,7 +74,7 @@ export default function HardPage() {
         <HelpCenter />
       </div>
       <p className="text-[var(--color-muted)] mb-5">
-        Two kinds of card gather here: ones <b>you flagged</b> <Flag size={13} className="inline" /> to revisit, and ones the app marked <b className="text-[var(--color-hard)]">hard</b> because you rated them Hard (or kept failing them). Cards rated &quot;Again&quot; aren&apos;t listed — they come straight back in your normal queue.
+        Two kinds of card gather here: ones <b>you flagged</b> <Flag size={13} className="inline" /> to revisit, and ones the app marked <b className="text-[var(--color-hard)]">hard</b>{" "}because you rated them Hard (or kept failing them). Cards rated &quot;Again&quot; aren&apos;t listed — they come straight back in your normal queue.
       </p>
 
       {loading ? (
