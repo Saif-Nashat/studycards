@@ -279,7 +279,7 @@ export default function StudySession({ mode, deckId, deckIds, source, limit, tit
   const progress = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl md:max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-y-2">
         <h1 className="text-lg font-semibold min-w-0 truncate max-w-full">{title}</h1>
         <div className="flex items-center gap-2 flex-wrap">
@@ -318,58 +318,62 @@ export default function StudySession({ mode, deckId, deckIds, source, limit, tit
         <motion.div className="h-full progress-glow" animate={{ width: `${progress}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={current.id + "-" + idx} initial={{ opacity: 0, y: 16, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.22 }} className="card-surface gradient-ring p-7 md:p-10 min-h-[300px] flex flex-col relative">
-          <AnimatePresence>
-            {flagToast && (
-              <motion.div initial={{ opacity: 0, y: -8, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }}
-                className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full shadow"
-                style={{ background: flagToast === "on" ? "var(--color-hard)" : "var(--color-surface-2)", color: flagToast === "on" ? "white" : "var(--color-muted)" }}>
-                <Flag size={14} fill={flagToast === "on" ? "white" : "none"} />
-                {flagToast === "on" ? "Flagged for review" : "Flag removed"}
-              </motion.div>
-            )}
+      <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-5">
+        {/* Card. On phones it scrolls inside its own box, so a long answer can't
+            push the ratings off-screen; on wider screens it grows naturally
+            because the ratings sit beside it, not below. */}
+        <div className="flex-1 min-w-0">
+          <AnimatePresence mode="wait">
+            <motion.div key={current.id + "-" + idx} initial={{ opacity: 0, y: 16, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.22 }} className="card-surface gradient-ring p-7 md:p-10 min-h-[280px] max-h-[56vh] overflow-y-auto md:max-h-none md:overflow-visible flex flex-col relative">
+              <AnimatePresence>
+                {flagToast && (
+                  <motion.div initial={{ opacity: 0, y: -8, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8 }}
+                    className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full shadow"
+                    style={{ background: flagToast === "on" ? "var(--color-hard)" : "var(--color-surface-2)", color: flagToast === "on" ? "white" : "var(--color-muted)" }}>
+                    <Flag size={14} fill={flagToast === "on" ? "white" : "none"} />
+                    {flagToast === "on" ? "Flagged for review" : "Flag removed"}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex gap-2 flex-wrap items-center">
+                  {isLeech && <span className="chip" style={{ background: "var(--color-danger-bg)", color: "var(--color-again)" }}><Bug size={12} /> Leech</span>}
+                </div>
+                <motion.button onClick={toggleFlag} whileTap={{ scale: 0.8 }} animate={isFlagged ? { scale: [1, 1.25, 1] } : { scale: 1 }} transition={{ duration: 0.3 }}
+                  className={`transition-colors ${isFlagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)] hover:text-[var(--color-hard)]"}`}
+                  title={isFlagged ? "Flagged — click to remove (F)" : "Flag for review later (F)"}>
+                  <Flag size={20} fill={isFlagged ? "currentColor" : "none"} />
+                </motion.button>
+              </div>
+
+              <div className="flex-1 flex flex-col justify-center">
+                <CardQuestion card={current} />
+                {revealed && (
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-6 pt-6 border-t border-[var(--color-line)]">
+                    <CardAnswer card={current} />
+                  </motion.div>
+                )}
+              </div>
+
+              {current.source && <p className="text-xs text-[var(--color-muted)] mt-6">Source: {current.source}</p>}
+            </motion.div>
           </AnimatePresence>
+        </div>
 
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2 flex-wrap items-center">
-              {isLeech && <span className="chip" style={{ background: "var(--color-danger-bg)", color: "var(--color-again)" }}><Bug size={12} /> Leech</span>}
-            </div>
-            <motion.button onClick={toggleFlag} whileTap={{ scale: 0.8 }} animate={isFlagged ? { scale: [1, 1.25, 1] } : { scale: 1 }} transition={{ duration: 0.3 }}
-              className={`transition-colors ${isFlagged ? "text-[var(--color-hard)]" : "text-[var(--color-muted)] hover:text-[var(--color-hard)]"}`}
-              title={isFlagged ? "Flagged — click to remove (F)" : "Flag for review later (F)"}>
-              <Flag size={20} fill={isFlagged ? "currentColor" : "none"} />
-            </motion.button>
-          </div>
-
-          <div className="flex-1 flex flex-col justify-center">
-            <CardQuestion card={current} />
-            {revealed && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-6 pt-6 border-t border-[var(--color-line)]">
-                <CardAnswer card={current} />
-              </motion.div>
-            )}
-          </div>
-
-          {current.source && <p className="text-xs text-[var(--color-muted)] mt-6">Source: {current.source}</p>}
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Pinned action bar. The Show Answer / rating controls stick to the
-          bottom of the screen, so however long the answer is you never have to
-          scroll down to rate — the buttons are always in the same spot. It
-          floats on a blurred surface and, at the very bottom of the page,
-          settles into place below the card so nothing stays hidden behind it. */}
-      <div className="mt-5 sticky bottom-3 z-20">
-        <div className="rounded-2xl border border-[var(--color-line)] bg-[color-mix(in_srgb,var(--color-surface)_88%,transparent)] backdrop-blur-md p-3 shadow-[0_-10px_30px_-18px_var(--shadow-key)]">
+        {/* Ratings — beside the card on tablet/desktop, below it on phones.
+            Either way they live outside the card so they never cover the answer,
+            and (with the phone card capped above) never need a scroll to reach.
+            Sticky on desktop keeps them in view down a long card. */}
+        <div className="md:w-44 md:shrink-0 md:sticky md:top-24">
           {!revealed ? (
-            <button onClick={() => setRevealed(true)} className="btn btn-primary w-full py-3.5 text-base">
-              <Eye size={18} /> Show Answer <span className="opacity-70 text-sm ml-1">(Space)</span>
+            <button onClick={() => setRevealed(true)} className="btn btn-primary w-full py-3.5 md:py-8 text-base">
+              <Eye size={18} /> Show Answer <span className="opacity-70 text-sm ml-1 md:hidden">(Space)</span>
             </button>
           ) : (
-            <div className="grid grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-4 md:grid-cols-1 gap-2.5">
               {RATINGS.map((r) => (
-                <button key={r.key} onClick={() => rate(r.key)} className="btn flex-col gap-0.5 py-3 text-white" style={{ background: r.color }}>
+                <button key={r.key} onClick={() => rate(r.key)} className="btn flex-col gap-0.5 py-3 md:py-4 text-white" style={{ background: r.color }}>
                   <span className="text-base font-bold">{r.label}</span>
                   <span className="text-[11px] opacity-90">
                     {previewInterval({ state: current.state ?? "new", intervalDays: current.intervalDays ?? 0, ease: current.ease ?? 2.5, reps: current.reps ?? 0, lapses: current.lapses ?? 0 }, r.key)} · {r.hot}
@@ -378,7 +382,7 @@ export default function StudySession({ mode, deckId, deckIds, source, limit, tit
               ))}
             </div>
           )}
-          <p className="text-center text-xs text-[var(--color-muted)] mt-3 hidden sm:block">← / → to move between cards · Space to reveal · 1–4 to rate · F to flag</p>
+          <p className="text-center text-xs text-[var(--color-muted)] mt-3 hidden md:block">Space reveals · 1–4 rate · F flags · ← / → move</p>
         </div>
       </div>
 

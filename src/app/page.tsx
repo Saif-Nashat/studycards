@@ -84,8 +84,6 @@ export default function Dashboard() {
         transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
         className="card-surface gradient-ring p-7 md:p-10 relative overflow-hidden"
       >
-        {/* Page help, tucked in the hero's top-right corner. */}
-        <span className="absolute top-4 right-4 z-10"><HelpCenter /></span>
         <motion.div
           className="absolute -right-10 -top-10 w-52 h-52 rounded-full bg-[var(--color-accent)]/25 blur-3xl"
           animate={{ x: [0, -16, 0], y: [0, 12, 0], scale: [1, 1.18, 1] }}
@@ -101,7 +99,10 @@ export default function Dashboard() {
           animate={{ x: [0, 12, 0], y: [0, -8, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 13, repeat: Infinity, ease: "easeInOut" }}
         />
-        <span className="eyebrow relative mb-4">Welcome back</span>
+        <div className="relative z-10 flex items-center justify-between gap-3 mb-4">
+          <span className="eyebrow">Welcome back</span>
+          <HelpCenter />
+        </div>
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl mt-3 relative tracking-tight leading-[1.15]">
           Ready to <span className="text-gradient italic">revise?</span>
         </h1>

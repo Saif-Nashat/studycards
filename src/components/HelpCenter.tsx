@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -174,6 +175,11 @@ function helpFor(pathname: string): HelpContent {
 export default function HelpCenter() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // The overlay is portalled to <body>, so it can never be trapped or clipped by
+  // a transformed/overflow-hidden ancestor (e.g. the animated Home hero). Only
+  // portal after mount, when document.body exists (this is a client component).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // Close on route change so help never lingers with stale content.
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -209,7 +215,8 @@ export default function HelpCenter() {
         <HelpCircle size={20} strokeWidth={1.75} />
       </button>
 
-      <AnimatePresence>
+      {mounted && createPortal(
+        <AnimatePresence>
         {open && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -265,7 +272,9 @@ export default function HelpCenter() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
